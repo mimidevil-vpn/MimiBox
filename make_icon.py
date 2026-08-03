@@ -1,18 +1,22 @@
 # -*- coding: utf-8 -*-
-"""Генерация иконки приложения mimi crack (снежинка на тёмной плитке).
+"""Генерация иконки MimiBox (логотип «M» с градиентом на тёмной плитке).
 Создаёт ui/app.ico (для exe и проводника) и ui/app_icon.png (превью).
 Запуск:  py -3.12 make_icon.py   (нужен Pillow)
 """
-import math
 import os
 
 from PIL import Image, ImageDraw, ImageFilter
 
 S = 1024
-R = int(S * 0.24)          # радиус скругления плитки
+R = int(S * 0.24)                 # радиус скругления плитки
+PINK = (255, 122, 205, 255)       # #FF7ACD
+VIOLET = (200, 132, 255, 255)     # #C884FF
+TILE = (15, 15, 16, 255)          # #0F0F10
+
 CX = CY = S / 2
-ARM = S * 0.34             # длина луча снежинки
-W = max(2, int(S * 0.026)) # толщина линий
+MW = S * 0.16                     # половина ширины буквы M
+MY0, MY1 = S * 0.26, S * 0.72     # верх/низ M
+W = max(2, int(S * 0.082))        # толщина штрихов
 
 
 def rounded_mask(size, radius):
@@ -22,32 +26,37 @@ def rounded_mask(size, radius):
     return m
 
 
-def draw_snowflake(d, cx, cy, arm, w, color):
-    for k in range(6):
-        a = math.radians(60 * k)
-        ca, sa = math.cos(a), math.sin(a)
-        ex, ey = cx + arm * ca, cy + arm * sa
-        d.line([cx, cy, ex, ey], fill=color, width=w)
-        # округлые концы
-        d.ellipse([ex - w / 2, ey - w / 2, ex + w / 2, ey + w / 2], fill=color)
-        # боковые веточки
-        for f in (0.52, 0.8):
-            bx, by = cx + arm * f * ca, cy + arm * f * sa
-            bl = arm * 0.22
-            for da in (52, -52):
-                a2 = a + math.radians(da)
-                d.line([bx, by, bx + bl * math.cos(a2), by + bl * math.sin(a2)],
-                       fill=color, width=w)
-    # центральная точка
-    d.ellipse([cx - w, cy - w, cx + w, cy + w], fill=color)
+def draw_m(d, color, width):
+    x0, x1 = CX - MW, CX + MW
+    jt = (CX, MY1)  # нижняя точка V (базовая линия)
+    for a, b in (
+        ((x0, MY0), (x0, MY1)),   # левая стойка
+        ((x1, MY0), (x1, MY1)),   # правая стойка
+        ((x0, MY0), jt),          # левая диагональ
+        ((x1, MY0), jt),          # правая диагональ
+    ):
+        d.line([a, b], fill=color, width=width)
+        for (ex, ey) in (a, b):
+            r = width / 2
+            d.ellipse([ex - r, ey - r, ex + r, ey + r], fill=color)
 
 
-# фон-плитка (почти чёрная, с лёгким верхним бликом)
+def hgrad(ca, cb):
+    px = Image.new("RGB", (S, S))
+    d = ImageDraw.Draw(px)
+    for x in range(S):
+        t = x / max(1, S - 1)
+        c = tuple(int(ca[i] + (cb[i] - ca[i]) * t) for i in range(3))
+        d.line([(x, 0), (x, S)], fill=c)
+    return px
+
+
+# фон-плитка
 base = Image.new("RGBA", (S, S), (0, 0, 0, 0))
-tile = Image.new("RGBA", (S, S), (13, 13, 14, 255))
+tile = Image.new("RGBA", (S, S), TILE)
 grad = Image.new("L", (1, S))
 for y in range(S):
-    grad.putpixel((0, y), int(46 * (1 - y / S)))     # блик сверху
+    grad.putpixel((0, y), int(46 * (1 - y / S)))
 sheen = Image.new("RGBA", (S, S), (255, 255, 255, 0))
 sheen.putalpha(grad.resize((S, S)))
 tile = Image.alpha_composite(tile, sheen)
@@ -55,19 +64,22 @@ tile = Image.alpha_composite(tile, sheen)
 mask = rounded_mask(S, R)
 base.paste(tile, (0, 0), mask)
 
-d = ImageDraw.Draw(base)
-# тонкая светлая рамка
-d.rounded_rectangle([3, 3, S - 4, S - 4], radius=R, outline=(255, 255, 255, 46), width=6)
-
-# мягкая тень снежинки для объёма
+# мягкое свечение за буквой
 glow = Image.new("RGBA", (S, S), (0, 0, 0, 0))
 dg = ImageDraw.Draw(glow)
-draw_snowflake(dg, CX, CY + S * 0.012, ARM, W + 6, (0, 0, 0, 120))
-glow = glow.filter(ImageFilter.GaussianBlur(10))
+draw_m(dg, (255, 122, 205, 110), W + 8)
+glow = glow.filter(ImageFilter.GaussianBlur(24))
 base = Image.alpha_composite(base, glow)
 
+# сама буква: градиент розовый -> фиолетовый
+letter = Image.new("L", (S, S), 0)
+dl = ImageDraw.Draw(letter)
+draw_m(dl, 255, W)
+base.paste(hgrad(PINK, VIOLET), (0, 0), letter)
+
+# тонкая светлая рамка
 d = ImageDraw.Draw(base)
-draw_snowflake(d, CX, CY, ARM, W, (255, 255, 255, 255))
+d.rounded_rectangle([3, 3, S - 4, S - 4], radius=R, outline=(255, 255, 255, 46), width=6)
 
 # обрезаем по маске (на случай выхода линий)
 out = Image.new("RGBA", (S, S), (0, 0, 0, 0))

@@ -1,11 +1,11 @@
 ; ============================================================
-;  mimi crack — установщик (Inno Setup 6)
+;  MimiBox — установщик (Inno Setup 6)
 ;  Ставится для текущего пользователя, БЕЗ прав администратора.
-;  Собрать: installer\build_installer.bat  ->  installer\Output\LDK2ray-Setup.exe
+;  Собрать: installer\build_installer.bat  ->  installer\Output\MimiBox-Setup.exe
 ; ============================================================
 
-#define MyAppName      "mimi crack"
-#define MyAppVersion   "3.0.0"
+#define MyAppName      "MimiBox"
+#define MyAppVersion   "4.0.0"
 #define MyAppPublisher "mimidevil"
 #define MyAppURL       "https://t.me/mimidevil"
 #define MyAppExeName   "LDK2ray.exe"
@@ -30,7 +30,7 @@ WizardStyle=modern
 Compression=lzma2/max
 SolidCompression=yes
 OutputDir=Output
-OutputBaseFilename=LDK2ray-Setup
+OutputBaseFilename=MimiBox-Setup
 SetupIconFile=..\ui\app.ico
 
 [Languages]

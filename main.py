@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""mimi crack — точка входа (pywebview) c поддержкой системного трея."""
+"""MimiBox — точка входа (pywebview) c поддержкой системного трея."""
 
 import os
 import sys
@@ -7,7 +7,7 @@ import threading
 
 import storage
 
-APP_TITLE = "mimi crack"
+APP_TITLE = "MimiBox"
 
 # Профиль движка WebView2 держим в папке данных. По умолчанию он создаётся рядом
 # с exe — а если приложение установлено в Program Files, туда писать нельзя, и
@@ -76,7 +76,7 @@ def main():
         width=1060,
         height=752,
         min_size=(920, 640),
-        background_color="#050505",
+        background_color="#0F0F10",
         hidden=start_hidden,
     )
 

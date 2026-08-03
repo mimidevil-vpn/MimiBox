@@ -4,7 +4,7 @@ REM   LDK2ray — сборка готового установщика (одно
 REM   1) собирает LDK2ray.exe (PyInstaller, Python 3.12)
 REM   2) кладёт рядом ядро и geo-файлы
 REM   3) ставит Inno Setup (если нет) и компилирует Setup.exe
-REM   Результат: installer\Output\LDK2ray-Setup.exe
+REM   Результат: installer\Output\MimiBox-Setup.exe
 REM ============================================================
 setlocal EnableExtensions
 cd /d "%~dp0.."
@@ -74,9 +74,9 @@ if not defined ISCC (
 REM 5/5) Compile installer
 echo [5/5] Compiling installer...
 "%ISCC%" "installer\LDK2ray.iss"
-if exist "installer\Output\LDK2ray-Setup.exe" (
+if exist "installer\Output\MimiBox-Setup.exe" (
     echo(
-    echo  SUCCESS ^-^> installer\Output\LDK2ray-Setup.exe
+    echo  SUCCESS ^-^> installer\Output\MimiBox-Setup.exe
 ) else (
     echo [!] Compilation failed - check messages above.
 )
