@@ -18,7 +18,7 @@
   --accent-grad:linear-gradient(135deg,#FF7ACD 0%,#E18BFF 55%,#C884FF 100%);
   --glow-pink:rgba(255,122,205,.28);
   --glow-lav:rgba(225,139,255,.22);
-  --r-sm:10px; --r-md:14px; --r-lg:20px;
+  --r-sm:14px; --r-md:18px; --r-lg:26px;
   --sidebar-w:208px;
   --ease:cubic-bezier(.22,.61,.36,1);
 }
@@ -152,7 +152,7 @@ h2.screen-title{font-size:21px;font-weight:800;letter-spacing:.01em;margin-botto
 .glass.hover:hover{transform:translateY(-2px) scale(1.012);border-color:rgba(225,139,255,.22);box-shadow:0 8px 34px rgba(0,0,0,.35),0 0 22px var(--glow-lav)}
 .btn{
   display:inline-flex;align-items:center;gap:8px;justify-content:center;
-  padding:10px 18px;border-radius:var(--r-sm);font-weight:800;font-size:12px;letter-spacing:.08em;
+  padding:10px 18px;border-radius:999px;font-weight:800;font-size:12px;letter-spacing:.08em;
   border:1px solid var(--glass-border);background:var(--glass);color:var(--text);
   transition:all .2s var(--ease);
 }
@@ -337,7 +337,7 @@ select.input{appearance:none;background-image:linear-gradient(45deg,transparent 
 .profile-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
 .profile-card{padding:20px}
 .tg-user{display:flex;align-items:center;gap:14px;margin-bottom:16px}
-.tg-avatar{width:52px;height:52px;border-radius:14px;object-fit:cover;background:var(--bg3);border:1px solid var(--line)}
+.tg-avatar{width:52px;height:52px;border-radius:50%;object-fit:cover;background:var(--bg3);border:1px solid var(--line)}
 .tg-avatar.placeholder{display:grid;place-items:center;font-size:22px;font-weight:800;color:var(--faint)}
 .tg-name{font-weight:800;font-size:15px}
 .tg-handle{font-size:12px;color:var(--dim)}
@@ -384,8 +384,10 @@ select.input{appearance:none;background-image:linear-gradient(45deg,transparent 
 .ser-card{display:flex;gap:28px;padding:30px;align-items:center;border-radius:18px;flex-wrap:wrap;justify-content:center}
 .ser-stage{position:relative}
 .ser-svg{width:210px;height:260px;display:block;filter:drop-shadow(0 12px 34px rgba(255,122,205,.28))}
-.ser-mood-happy .ser-svg{animation:ser-bob 3s var(--ease) infinite}
-.ser-mood-hungry .ser-svg{animation:ser-wob 1.6s ease-in-out infinite}
+.ser-photo{width:210px;height:260px;object-fit:contain;display:block;border-radius:18px;filter:drop-shadow(0 12px 34px rgba(255,122,205,.28))}
+.ser-ph{width:210px;height:260px;border-radius:18px;border:2px dashed var(--line);display:flex;align-items:center;justify-content:center;font-size:64px;color:var(--lav);background:rgba(255,255,255,.03);box-shadow:inset 0 0 60px rgba(255,158,245,.06)}
+.ser-mood-happy .ser-svg,.ser-mood-happy .ser-photo,.ser-mood-happy .ser-ph{animation:ser-bob 3s var(--ease) infinite}
+.ser-mood-hungry .ser-svg,.ser-mood-hungry .ser-photo,.ser-mood-hungry .ser-ph{animation:ser-wob 1.6s ease-in-out infinite}
 @keyframes ser-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
 @keyframes ser-wob{0%,100%{transform:rotate(0)}25%{transform:rotate(-2.5deg)}75%{transform:rotate(2.5deg)}}
 .ser-level-badge{position:absolute;bottom:4px;left:50%;transform:translateX(-50%);background:var(--accent-grad);color:#fff;font-weight:900;font-size:11px;letter-spacing:.12em;padding:5px 13px;border-radius:999px;box-shadow:0 6px 18px rgba(255,122,205,.45)}
@@ -457,7 +459,7 @@ select.input{appearance:none;background-image:linear-gradient(45deg,transparent 
 .msgr-dialogs{width:272px;flex:none;display:flex;flex-direction:column;border-right:1px solid var(--line-soft);background:var(--glass);min-height:0}
 .msgr-dialogs-head{padding:14px 14px 10px;border-bottom:1px solid var(--line-soft)}
 .msgr-me{display:flex;align-items:center;gap:10px;padding-bottom:10px}
-.msgr-me .tg-avatar{width:38px;height:38px;border-radius:12px;font-size:15px}
+.msgr-me .tg-avatar{width:38px;height:38px;border-radius:50%;font-size:15px}
 .msgr-me .me-txt{flex:1;min-width:0}
 .msgr-me .me-name{font-weight:800;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .msgr-me .me-sub{font-size:10.5px;color:var(--faint)}
@@ -468,7 +470,7 @@ select.input{appearance:none;background-image:linear-gradient(45deg,transparent 
 .msgr-dialog{display:flex;gap:10px;padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--line-soft);transition:background .15s}
 .msgr-dialog:hover{background:rgba(255,255,255,.03)}
 .msgr-dialog.active{background:linear-gradient(90deg,rgba(225,139,255,.12),rgba(225,139,255,.02))}
-.dlg-ava{width:40px;height:40px;flex:none;border-radius:12px;display:grid;place-items:center;font-weight:800;font-size:14px;color:#fff;
+.dlg-ava{width:40px;height:40px;flex:none;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:14px;color:#fff;
   background:linear-gradient(135deg,rgba(255,122,205,.55),rgba(200,132,255,.6));overflow:hidden}
 .dlg-ava img{width:100%;height:100%;object-fit:cover}
 .dlg-meta{flex:1;min-width:0}
@@ -480,36 +482,50 @@ select.input{appearance:none;background-image:linear-gradient(45deg,transparent 
 .dlg-unread{flex:none;min-width:18px;height:18px;border-radius:9px;padding:0 5px;display:grid;place-items:center;
   background:var(--accent-grad);color:#fff;font-size:10px;font-weight:800}
 .dlg-empty{padding:30px 14px;text-align:center;color:var(--faint);font-size:12.5px}
+.dlg-muted{flex:none;font-size:10px;color:var(--faint)}
+.dlg-arch-btn{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:12px;
+  color:var(--faint);background:transparent;border:1px solid transparent;opacity:0;transition:all .15s var(--ease)}
+.msgr-dialog:hover .dlg-arch-btn{opacity:1}
+.dlg-arch-btn:hover{color:#fff;border-color:var(--line);background:var(--glass);transform:scale(1.1)}
+.dlg-arch-head{display:flex;align-items:center;justify-content:space-between;padding:9px 16px;cursor:pointer;
+  color:var(--dim);font-size:10.5px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+  border-bottom:1px solid var(--line-soft);transition:color .15s}
+.dlg-arch-head:hover{color:var(--text)}
+.dlg-arch-arrow{font-size:10px;color:var(--faint)}
 
 .msgr-chat{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0}
 .msgr-chat-head{flex:none;display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid var(--line-soft)}
-.msgr-chat-head .tg-avatar{width:36px;height:36px;border-radius:11px;font-size:14px}
+.msgr-chat-head .tg-avatar{width:36px;height:36px;border-radius:50%;font-size:14px}
 .msgr-chat-title{font-weight:800;font-size:14px}
 .msgr-chat-sub{font-size:11px;color:var(--dim);margin-top:1px}
 .msgr-chat-body{flex:1;overflow-y:auto;min-height:0;padding:18px 22px;display:flex;flex-direction:column;gap:8px}
 .chat-day{text-align:center;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin:6px 0}
-.msg{max-width:68%;align-self:flex-start;position:relative;padding:9px 13px 7px;border-radius:14px 14px 14px 4px;
+.msg{max-width:68%;align-self:flex-start;position:relative;padding:9px 13px 7px;border-radius:18px 18px 18px 6px;
   background:rgba(0,0,0,.28);border:1px solid var(--line);font-size:13px;line-height:1.5;word-wrap:break-word}
 .msg.out{align-self:flex-end;background:linear-gradient(135deg,rgba(255,122,205,.20),rgba(200,132,255,.14));
-  border-color:rgba(225,139,255,.28);border-radius:14px 14px 4px 14px}
+  border-color:rgba(225,139,255,.28);border-radius:18px 18px 6px 18px}
 .msg.plug{border-color:rgba(125,226,168,.35);background:rgba(125,226,168,.07)}
 .msg.plug .msg-tag{display:block;font-size:9.5px;letter-spacing:.14em;color:#7DE2A8;font-weight:800;margin-bottom:2px;text-transform:uppercase}
 .msg .msg-sender{display:block;font-size:10.5px;font-weight:800;color:var(--lav);margin-bottom:2px}
 .msg .msg-time{display:block;text-align:right;font-size:9.5px;color:var(--faint);margin-top:3px;font-variant-numeric:tabular-nums}
-.msg-media{display:flex;align-items:center;gap:9px;margin-top:4px;padding:7px 9px;border-radius:9px;cursor:pointer;
+.msg-media{display:flex;align-items:center;gap:9px;margin-top:4px;padding:7px 9px;border-radius:14px;cursor:pointer;
   background:rgba(0,0,0,.22);border:1px solid var(--line);transition:border-color .15s}
 .msg-media:hover{border-color:rgba(225,139,255,.4)}
 .msg-media .mm-icon{font-size:16px;flex:none}
 .msg-media .mm-name{font-size:11.5px;font-weight:700;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .msg-media .mm-size{font-size:10px;color:var(--faint)}
-.msg img.msg-photo{display:block;margin-top:4px;max-width:240px;max-height:200px;border-radius:10px;cursor:zoom-in;
+.msg img.msg-photo{display:block;margin-top:4px;max-width:240px;max-height:200px;border-radius:14px;cursor:zoom-in;
   border:1px solid var(--line)}
+.mm-voice .mm-play{width:30px;height:30px;flex:none;border-radius:50%;display:grid;place-items:center;
+  background:var(--accent-grad);color:#fff;font-size:11px;padding-left:2px;box-shadow:0 3px 10px var(--glow-pink)}
+.mm-voice:hover .mm-play{transform:scale(1.08)}
+audio.msg-voice{max-width:260px;height:40px;margin-top:4px;border-radius:14px;background:rgba(0,0,0,.28);border:1px solid var(--line)}
 
 .msgr-chat-input{flex:none;display:flex;align-items:flex-end;gap:8px;padding:12px 16px;border-top:1px solid var(--line-soft)}
-.msgr-chat-input textarea{flex:1;resize:none;min-height:42px;max-height:140px;padding:10px 13px;font-size:13px;line-height:1.4}
-#chatSendBtn{width:42px;height:42px;flex:none;border-radius:12px;font-size:15px;padding:0}
-#chatAttachBtn{width:42px;height:42px;flex:none;border-radius:12px;font-size:17px;padding:0}
-#chatStickerBtn{width:42px;height:42px;flex:none;border-radius:12px;font-size:16px;padding:0}
+.msgr-chat-input textarea{flex:1;resize:none;min-height:42px;max-height:140px;padding:10px 13px;font-size:13px;line-height:1.4;border-radius:16px}
+#chatSendBtn{width:42px;height:42px;flex:none;border-radius:50%;font-size:15px;padding:0}
+#chatAttachBtn{width:42px;height:42px;flex:none;border-radius:50%;font-size:17px;padding:0}
+#chatStickerBtn{width:42px;height:42px;flex:none;border-radius:50%;font-size:16px;padding:0}
 .msgr-composer{flex:none}
 .msgr-picker{border-top:1px solid var(--line-soft);background:rgba(20,20,24,.55);backdrop-filter:blur(8px)}
 .picker-head{display:flex;align-items:center;gap:6px;padding:8px 14px}
@@ -519,7 +535,7 @@ select.input{appearance:none;background-image:linear-gradient(45deg,transparent 
 .picker-x:hover{color:var(--text)}
 .picker-body{padding:4px 14px 14px;max-height:220px;overflow-y:auto}
 .sticker-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:6px}
-.sticker-cell{font-size:26px;line-height:1;text-align:center;padding:9px 0;border-radius:12px;cursor:pointer;transition:all .16s var(--ease);background:transparent}
+.sticker-cell{font-size:26px;line-height:1;text-align:center;padding:9px 0;border-radius:14px;cursor:pointer;transition:all .16s var(--ease);background:transparent}
 .sticker-cell:hover{background:rgba(225,139,255,.16);transform:scale(1.18)}
 .gif-row{display:flex;gap:8px;align-items:center}
 .gif-row .input{flex:1}
@@ -1149,6 +1165,7 @@ select.input{appearance:none;background-image:linear-gradient(45deg,transparent 
                     <div class="me-sub" id="msgrMeSub">&nbsp;</div>
                   </div>
                   <button class="btn ghost small danger" id="msgrLogoutBtn" data-i18n="tgLogout" title="Выйти">⎋</button>
+                  <button class="btn ghost small" id="msgrAvatarBtn" data-i18n="tgSetAvatar" title="Аватар MimiBox">🖼</button>
                 </div>
                 <div class="msgr-dialogs-actions">
                   <button class="btn ghost small" id="msgrPluginsBtn" data-i18n="tgPlugins">Плагины</button>
@@ -1214,7 +1231,7 @@ select.input{appearance:none;background-image:linear-gradient(45deg,transparent 
 
       <section class="screen" data-screen="seirichik">
         <h2 class="screen-title" data-i18n="navSer">Серийчик</h2>
-        <p class="screen-desc" data-i18n="serDesc">Твоя аниме-девушка растёт от VPN-трафика.</p>
+        <p class="screen-desc" data-i18n="serDesc">Твой питомец Серийчик растёт от VPN-трафика.</p>
         <div id="serRoot"></div>
       </section>
 
@@ -1316,6 +1333,7 @@ const I18N = {
     errNoTun:'tun2socks.exe не найден рядом с приложением',
     errConflict:'Сторонний VPN уже запущен:', errConflictHint:'Отключи его, иначе возможны конфликты',
     connectedOk:'Подключено', disconnectedOk:'Отключено',
+    connTimeout:'Тайм-аут запуска. Ядро не поднялось — смотри лог в Настройках.',
     imported:'Добавлено серверов:', importedEmpty:'Ничего не нашлось в ссылках',
     subImported:'Подписка импортирована:', subFailed:'Не удалось импортировать подписку',
     restarting:'Перезапуск с правами администратора…',
@@ -1326,10 +1344,12 @@ const I18N = {
     navNews:'Новости', navSer:'Серийчик', navSeirichik:'Серийчик',
     newsDesc:'Последний пост из канала @mackkill.', newsEmpty:'Пока нет новостей',
     newsRefresh:'Обновить', openChannel:'Открыть канал', newsRead:'Прочитано',
-    serDesc:'Твоя аниме-девушка растёт от VPN-трафика.',
+    serDesc:'Твой питомец Серийчик растёт от VPN-трафика.',
     serFeed:'Покормить · 50 MB', serXp:'Опыт', serFull:'Сытость', serBank:'Запас трафика',
     serFed:'скормлено', serHint:'Трафик через VPN превращается в еду для Серийчик. Подключись и качай!',
-    serMoodHappy:'В отличном настроении', serMoodNeutral:'Спокойна', serMoodHungry:'Проголодалась!',
+    serPhoto:'Загрузить фото', serPhotoHint:'Для лучшего вида — прозрачный PNG, без квадратного фона.',
+    serPhotoDone:'Фото загружено', serPhotoDel:'Убрать фото', serPhotoDelDone:'Фото убрано',
+    serMoodHappy:'В отличном настроении', serMoodNeutral:'Спокоен', serMoodHungry:'Проголодался!',
     serHungry:'Покорми меня!', serFeedOk:'Ням! Спасибо за трафик', serLevelUp:'Уровень повышен!',
     serNotEnough:'Мало трафика в запасе — подключись и подкачай', serNameEmpty:'Введи имя',
     gifHint:'Вставь прямую ссылку на GIF (например, media.tenor.com) — файл скачается и уйдёт в чат как анимация.',
@@ -1340,6 +1360,7 @@ const I18N = {
     tgLoginTitle:'Вход в Telegram', tgLoginDesc:'Номер телефона + код из Telegram. Всё хранится только локально.',
     tgPhone:'Телефон', tgCode:'Код из Telegram', tgPass:'Облачный пароль (2FA)',
     tgGetCode:'Получить код', tgLoginBtn:'Войти', tgCancel:'Отмена', tgLogout:'Выйти',
+    tgSetAvatar:'Аватар MimiBox', tgAvatarDone:'Аватар установлен', tgAvatarPick:'Выбери фото для аватара или оставь иконку MimiBox',
     tgRefresh:'Обновить', tgChooseChat:'Выберите чат слева', tgSearch:'Поиск…',
     tgPlugins:'Плагины', tgPluginsHint:'Как в ExtraGram: положи .py в папку plugins — команды и обработчики заработают.',
     tgPluginsFolder:'Папка', tgPluginsReload:'Перезагрузить', tgPluginsFolderHint:'Папка данных\\plugins\\*.py',
@@ -1349,6 +1370,7 @@ const I18N = {
     tgMediaPhoto:'Фото', tgMediaGif:'GIF', tgMediaSticker:'Стикер', tgMediaVoice:'Голосовое',
     tgMediaVideo:'Видео', tgMediaAudio:'Аудио', tgMediaContact:'Контакт', tgMediaLocation:'Геолокация',
     tgMediaPoll:'Опрос', tgMediaInvoice:'Платёж', tgMediaGame:'Игра', tgMediaFile:'Файл',
+    tgArchive:'Архив', tgUnarchive:'Из архива', tgMuted:'Уведомления выключены',
     tgOpenFile:'Открыть файл', tgDownloading:'Скачивание…', tgYesterday:'вчера', tgNoDialogs:'Чатов нет',
     tgBadPhone:'Введите номер телефона', tgBadCode:'Введите код', tgBadPass:'Введите пароль',
     tgFlood:'Слишком много попыток, подождите', tgNoPlugins:'Плагинов пока нет'
@@ -1400,6 +1422,7 @@ const I18N = {
     errNoTun:'tun2socks.exe not found next to the app',
     errConflict:'Third-party VPN already running:', errConflictHint:'Turn it off to avoid conflicts',
     connectedOk:'Connected', disconnectedOk:'Disconnected',
+    connTimeout:'Connection start timed out. The core did not come up — check the log in Settings.',
     imported:'Servers added:', importedEmpty:'Nothing found in the links',
     subImported:'Subscription imported:', subFailed:'Failed to import subscription',
     restarting:'Restarting with admin rights…',
@@ -1410,9 +1433,11 @@ const I18N = {
     navNews:'News', navSer:'Mascot', navSeirichik:'Mascot',
     newsDesc:'Latest post from the @mackkill channel.', newsEmpty:'No news yet',
     newsRefresh:'Refresh', openChannel:'Open channel', newsRead:'Mark as read',
-    serDesc:'Your anime girl grows from VPN traffic.',
+    serDesc:'Your pet grows from VPN traffic.',
     serFeed:'Feed · 50 MB', serXp:'XP', serFull:'Fullness', serBank:'Traffic bank',
     serFed:'fed', serHint:'VPN traffic turns into food for your mascot. Connect and download!',
+    serPhoto:'Upload photo', serPhotoHint:'Best look: a transparent PNG, no square background.',
+    serPhotoDone:'Photo uploaded', serPhotoDel:'Remove photo', serPhotoDelDone:'Photo removed',
     serMoodHappy:'In a great mood', serMoodNeutral:'Calm', serMoodHungry:'Hungry!',
     serHungry:'Feed me!', serFeedOk:'Yum! Thanks for the traffic', serLevelUp:'Level up!',
     serNotEnough:'Not enough traffic saved — connect and download', serNameEmpty:'Enter a name',
@@ -1424,6 +1449,7 @@ const I18N = {
     tgLoginTitle:'Sign in to Telegram', tgLoginDesc:'Phone number + code from Telegram. Everything is stored locally.',
     tgPhone:'Phone', tgCode:'Code from Telegram', tgPass:'Cloud password (2FA)',
     tgGetCode:'Get code', tgLoginBtn:'Sign in', tgCancel:'Cancel', tgLogout:'Log out',
+    tgSetAvatar:'MimiBox avatar', tgAvatarDone:'Avatar set', tgAvatarPick:'Pick a photo for the avatar or keep the MimiBox icon',
     tgRefresh:'Refresh', tgChooseChat:'Select a chat on the left', tgSearch:'Search…',
     tgPlugins:'Plugins', tgPluginsHint:'Like in ExtraGram: put a .py into the plugins folder — commands and handlers will work.',
     tgPluginsFolder:'Folder', tgPluginsReload:'Reload', tgPluginsFolderHint:'Data folder\\plugins\\*.py',
@@ -1433,6 +1459,7 @@ const I18N = {
     tgMediaPhoto:'Photo', tgMediaGif:'GIF', tgMediaSticker:'Sticker', tgMediaVoice:'Voice',
     tgMediaVideo:'Video', tgMediaAudio:'Audio', tgMediaContact:'Contact', tgMediaLocation:'Location',
     tgMediaPoll:'Poll', tgMediaInvoice:'Invoice', tgMediaGame:'Game', tgMediaFile:'File',
+    tgArchive:'Archive', tgUnarchive:'Unarchive', tgMuted:'Notifications off',
     tgOpenFile:'Open file', tgDownloading:'Downloading…', tgYesterday:'yesterday', tgNoDialogs:'No chats',
     tgBadPhone:'Enter phone number', tgBadCode:'Enter the code', tgBadPass:'Enter password',
     tgFlood:'Too many attempts, wait', tgNoPlugins:'No plugins yet'
@@ -1682,6 +1709,12 @@ async function refreshFromBackend(){
 }
 
 /* ============ connect ============ */
+function withTimeout(p, ms){
+  return new Promise((res, rej) => {
+    const t = setTimeout(() => rej(new Error('timeout')), ms);
+    p.then(v => { clearTimeout(t); res(v); }, e => { clearTimeout(t); rej(e); });
+  });
+}
 async function toggleConnect(){
   if (connBusy) return;
   if (!api()) return;
@@ -1700,10 +1733,12 @@ async function toggleConnect(){
   connBusy = true;
   renderHome();
   let r;
-  try { r = await api().connect(S.selected); } catch(e){ r = {error: String(e)}; }
+  try { r = await withTimeout(api().connect(S.selected), 25000); } catch(e){ r = {error: 'timeout'}; }
   connBusy = false;
   if (r.error) {
-    if (r.error === 'need_admin') {
+    if (r.error === 'timeout') {
+      toast(t('connTimeout'), 'err');
+    } else if (r.error === 'need_admin') {
       if (confirm(t('errNeedAdmin'))) {
         toast(t('restarting'), 'warn');
         try { await api().request_admin(); } catch(e){}
@@ -2034,7 +2069,9 @@ let TG = {
   active: '',
   loginStep: 'phone',
   dialogsLoaded: false,
-  downloading: {}
+  downloading: {},
+  voiceEls: {},
+  archiveOpen: false,
 };
 function tgLoginHint(text, type){
   const h = $('#tgLoginHint');
@@ -2100,20 +2137,37 @@ function renderDialogList(){
   const q = (($('#msgrSearch').value || '').trim()).toLowerCase();
   let items = TG.dialogs;
   if (q) items = items.filter(d => (d.title || '').toLowerCase().indexOf(q) !== -1 || (d.username || '').toLowerCase().indexOf(q) !== -1);
+  const top = items.filter(d => !d.archived);
+  const arch = items.filter(d => d.archived);
   if (!items.length) {
     list.innerHTML = '<div class="dlg-empty">' + esc(t('tgNoDialogs')) + '</div>';
     return;
   }
-  list.innerHTML = items.map(d => {
-    const unread = d.unread ? '<div class="dlg-unread">' + d.unread + '</div>' : '';
-    return '<div class="msgr-dialog' + (d.id === TG.active ? ' active' : '') + '" data-peer="' + esc(d.id) + '">' +
-      '<div class="dlg-ava placeholder" id="ava_' + esc(d.id) + '">' + esc(((d.title || '?').trim().charAt(0) || '?').toUpperCase()) + '</div>' +
-      '<div class="dlg-meta">' +
-        '<div class="dlg-top"><span class="dlg-title">' + esc(d.title || '') + '</span><span class="dlg-time">' + esc(fmtTime(d.date)) + '</span></div>' +
-        '<div class="dlg-bottom"><span class="dlg-last">' + esc(d.last || '') + '</span>' + unread + '</div>' +
-      '</div></div>';
-  }).join('');
+  let html = top.map(d => dlgRow(d)).join('');
+  if (arch.length) {
+    const open = TG.archiveOpen;
+    html += '<div class="dlg-arch-head" id="dlgArchHead">' +
+      '<span class="dlg-arch-label">🗂 ' + esc(t('tgArchive')) + ' · ' + arch.length + '</span>' +
+      '<span class="dlg-arch-arrow">' + (open ? '▾' : '▸') + '</span></div>';
+    if (open) html += arch.map(d => dlgRow(d)).join('');
+  }
+  list.innerHTML = html;
+  const head = $('#dlgArchHead');
+  if (head) head.addEventListener('click', () => { TG.archiveOpen = !TG.archiveOpen; renderDialogList(); });
   items.forEach(d => { const av = TG.avatars[d.id]; if (av) setAva($('#ava_' + d.id), av, d.title); });
+}
+function dlgRow(d){
+  const unread = d.unread ? '<div class="dlg-unread">' + d.unread + '</div>' : '';
+  const muted = d.muted ? '<span class="dlg-muted" title="' + esc(t('tgMuted')) + '">🔕</span>' : '';
+  const archBtn = d.archived
+    ? '<button class="dlg-arch-btn" data-peer="' + esc(d.id) + '" data-arch="0" title="' + esc(t('tgUnarchive')) + '">↩</button>'
+    : '<button class="dlg-arch-btn" data-peer="' + esc(d.id) + '" data-arch="1" title="' + esc(t('tgArchive')) + '">📦</button>';
+  return '<div class="msgr-dialog' + (d.id === TG.active ? ' active' : '') + '" data-peer="' + esc(d.id) + '">' +
+    '<div class="dlg-ava placeholder" id="ava_' + esc(d.id) + '">' + esc(((d.title || '?').trim().charAt(0) || '?').toUpperCase()) + '</div>' +
+    '<div class="dlg-meta">' +
+      '<div class="dlg-top"><span class="dlg-title">' + esc(d.title || '') + '</span><span class="dlg-time">' + esc(fmtTime(d.date)) + '</span></div>' +
+      '<div class="dlg-bottom"><span class="dlg-last">' + esc(d.last || '') + '</span>' + unread + muted + '</div>' +
+    '</div>' + archBtn + '</div>';
 }
 function msgEl(ev){
   const el = document.createElement('div');
@@ -2150,11 +2204,26 @@ function mediaEl(ev, peer){
   wrap.className = 'msg-media';
   wrap.dataset.peer = peer;
   wrap.dataset.msg = ev.id;
-  wrap.onclick = () => tgDownload(peer, ev.id);
   const mi = ev.media || {};
+  if (mi.kind === 'voice') {
+    wrap.classList.add('mm-voice');
+    wrap.onclick = () => tgPlayVoice(peer, ev.id);
+    const play = document.createElement('span');
+    play.className = 'mm-play';
+    play.textContent = '▶';
+    const name = document.createElement('span');
+    name.className = 'mm-name';
+    name.textContent = tgMediaLabel(mi);
+    const dur = document.createElement('span');
+    dur.className = 'mm-size';
+    dur.textContent = mi.size ? fmtBytes(mi.size) : '';
+    wrap.append(play, name, dur);
+    return wrap;
+  }
+  wrap.onclick = () => tgDownload(peer, ev.id);
   const icon = document.createElement('span');
   icon.className = 'mm-icon';
-  icon.textContent = mi.kind === 'photo' ? '🖼' : mi.kind === 'sticker' ? '🎴' : mi.kind === 'gif' ? '🎞' : mi.kind === 'voice' ? '🎙' : mi.kind === 'video' ? '🎬' : '📄';
+  icon.textContent = mi.kind === 'photo' ? '🖼' : mi.kind === 'sticker' ? '🎴' : mi.kind === 'gif' ? '🎞' : mi.kind === 'video' ? '🎬' : '📄';
   const name = document.createElement('span');
   name.className = 'mm-name';
   name.textContent = tgMediaLabel(mi);
@@ -2163,6 +2232,20 @@ function mediaEl(ev, peer){
   sz.textContent = mi.size ? fmtBytes(mi.size) : '';
   wrap.append(icon, name, sz);
   return wrap;
+}
+function tgPlayVoice(peer, msgId){
+  if (!api()) return;
+  const key = peer + ':' + msgId;
+  if (TG.downloading[key]) return;
+  const wrap = document.querySelector('.msg-media[data-peer="' + peer + '"][data-msg="' + msgId + '"]');
+  const audio = document.createElement('audio');
+  audio.className = 'msg-voice';
+  audio.controls = true;
+  audio.autoplay = true;
+  if (wrap) wrap.replaceWith(audio);
+  TG.voiceEls[key] = audio;
+  TG.downloading[key] = true;
+  api().tg_download(peer, msgId).catch(() => {});
 }
 function renderChatHead(dlg){
   if (!dlg) { $('#chatTitle').textContent = '—'; $('#chatSub').textContent = ''; return; }
@@ -2215,7 +2298,7 @@ function tgAddMessage(ev){
   renderDialogList();
   if (screen === 'messenger') {
     if (TG.active === peer) renderChat();
-    else if (!ev.out && ev.text !== null && ev.text !== undefined) {
+    else if (!ev.out && !d.muted && ev.text !== null && ev.text !== undefined) {
       toast(((d.title || '') + ': ' + (ev.text || tgMediaLabel(ev.media))).slice(0, 80), 'accent');
     }
   }
@@ -2245,7 +2328,7 @@ function tgPush(ev){
   switch (ev.type) {
     case 'need_credentials': TG.loginStep = 'phone'; tgLoginHint(t('tgNeedCreds'), ''); renderMsgr(); break;
     case 'not_authorized':
-      TG.authorized = false; TG.me = null; TG.dialogs = []; TG.dialogMap = {}; TG.messages = {}; TG.senders = {}; TG.thumbs = {}; TG.active = ''; TG.dialogsLoaded = false;
+      TG.authorized = false; TG.me = null; TG.dialogs = []; TG.dialogMap = {}; TG.messages = {}; TG.senders = {}; TG.thumbs = {}; TG.active = ''; TG.dialogsLoaded = false; TG.voiceEls = {};
       renderMsgr(); break;
     case 'ready':
       TG.authorized = true; TG.me = ev.me || TG.me || {};
@@ -2279,6 +2362,13 @@ function tgPush(ev){
     case 'avatar':
       TG.avatars[ev.peer_id] = ev.data; renderAvatars(); break;
     case 'media': tgGotMedia(ev); break;
+    case 'news': applyNewsData(ev); break;
+    case 'news_error':
+      if (screen === 'news') {
+        const nb = $('#newsBody');
+        if (nb) nb.innerHTML = '<div class="empty-state">' + esc(t('newsEmpty')) + '</div>';
+      }
+      break;
     case 'error': tgHandleError(ev); break;
   }
 }
@@ -2286,6 +2376,16 @@ function tgGotMedia(ev){
   TG.downloading = {};
   if (ev.error) { toast(t('tgErrOp') + ' ' + ev.error, 'err'); return; }
   if (ev.data) {
+    if (ev.kind === 'voice') {
+      const key = ev.peer_id + ':' + ev.msg_id;
+      const audio = TG.voiceEls[key] || document.querySelector('.msg-media[data-peer="' + ev.peer_id + '"][data-msg="' + ev.msg_id + '"]');
+      if (audio && audio.tagName === 'AUDIO') {
+        audio.src = ev.data;
+        audio.play().catch(() => {});
+        delete TG.voiceEls[key];
+      }
+      return;
+    }
     const img = $('#photoViewerImg');
     if (img) { img.src = ev.data; $('#photoViewer').hidden = false; }
   } else if (ev.path) {
@@ -2351,9 +2451,30 @@ function tgLoginCancel(){
 async function tgLogout(){
   if (!api()) return;
   try { await api().tg_logout(); } catch(e){}
-  TG.authorized = false; TG.me = null; TG.dialogs = []; TG.dialogMap = {}; TG.messages = {}; TG.thumbs = {}; TG.active = ''; TG.dialogsLoaded = false;
+  TG.authorized = false; TG.me = null; TG.dialogs = []; TG.dialogMap = {}; TG.messages = {}; TG.thumbs = {}; TG.active = ''; TG.dialogsLoaded = false; TG.voiceEls = {};
   toast(t('tgLoggedOut'), 'ok');
   renderMsgr();
+}
+function tgSetAvatar(){
+  if (!api() || !TG.authorized) return;
+  const pick = () => {
+    const inp = document.createElement('input');
+    inp.type = 'file';
+    inp.accept = 'image/*';
+    inp.onchange = () => {
+      const f = inp.files && inp.files[0];
+      if (!f) return;
+      if (f.size > 10 * 1024 * 1024) { toast(t('tgErrOp') + ' >10MB', 'err'); return; }
+      const rd = new FileReader();
+      rd.onload = () => { setAvatarB64(String(rd.result)); };
+      rd.readAsDataURL(f);
+    };
+    inp.click();
+  };
+  const setAvatarB64 = async (dataUrl) => {
+    try { await api().tg_set_avatar(dataUrl); toast(t('tgAvatarDone'), 'ok'); } catch(e){ toast(t('tgErrOp') + ' ' + e, 'err'); }
+  };
+  if (confirm(t('tgAvatarPick'))) pick(); else setAvatarB64('');
 }
 async function tgOpen(peer){
   if (peer === TG.active) return;
@@ -2388,9 +2509,37 @@ function tgSendFile(){
   rd.onload = async () => {
     const b64 = String(rd.result).split(',', 2)[1];
     toast(t('tgSending'), 'accent');
-    try { await api().tg_send_file(TG.active, f.name, b64); } catch(e){ toast(t('tgErrOp') + ' ' + e, 'err'); }
+    try {
+      const r = await api().tg_send_file(TG.active, f.name, b64);
+      if (r && r.ok === false) toast(t('tgErrOp') + (r.error ? ' ' + r.error : ''), 'err');
+    } catch(e){ toast(t('tgErrOp') + ' ' + e, 'err'); }
   };
   rd.readAsDataURL(f);
+  $('#chatFile').value = '';
+}
+function tgPasteFile(e){
+  if (!TG.active || !api()) return;
+  const items = (e.clipboardData || {}).items;
+  if (!items) return;
+  for (const it of items) {
+    if (it.kind !== 'file') continue;
+    const f = it.getAsFile();
+    if (!f) continue;
+    if (f.size > 50 * 1024 * 1024) { toast(t('tgErrOp') + ' >50MB', 'err'); return; }
+    const rd = new FileReader();
+    rd.onload = async () => {
+      const b64 = String(rd.result).split(',', 2)[1];
+      const name = f.name || ('paste_' + Date.now() + (f.type.indexOf('image/') === 0 ? f.type.replace('image/', '.') : ''));
+      toast(t('tgSending'), 'accent');
+      try {
+        const r = await api().tg_send_file(TG.active, name, b64);
+        if (r && r.ok === false) toast(t('tgErrOp') + (r.error ? ' ' + r.error : ''), 'err');
+      } catch(err){ toast(t('tgErrOp') + ' ' + err, 'err'); }
+    };
+    rd.readAsDataURL(f);
+    e.preventDefault();
+    return;
+  }
 }
 function autoGrowInput(){
   const ta = $('#chatInput');
@@ -2476,10 +2625,22 @@ function initMsgrEvents(){
   $('#tgPhone').addEventListener('keydown', e => { if (e.key === 'Enter' && TG.loginStep === 'phone') tgLoginStart(); });
   $('#tgCode').addEventListener('keydown', e => { if (e.key === 'Enter' && TG.loginStep === 'code') tgLoginNext(); });
   $('#tgPass').addEventListener('keydown', e => { if (e.key === 'Enter' && TG.loginStep === 'password') tgLoginNext(); });
-  $('#dialogList').addEventListener('click', e => { const d = e.target.closest('[data-peer]'); if (d) tgOpen(d.dataset.peer); });
+  $('#dialogList').addEventListener('click', e => {
+    const ab = e.target.closest('[data-arch]');
+    if (ab) {
+      const peer = ab.dataset.peer;
+      const on = ab.dataset.arch === '1';
+      if (api()) api().tg_archive(peer, on).catch(() => {});
+      e.stopPropagation();
+      return;
+    }
+    const d = e.target.closest('[data-peer]');
+    if (d) tgOpen(d.dataset.peer);
+  });
   $('#chatSendBtn').addEventListener('click', tgSend);
   $('#chatInput').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); tgSend(); } });
   $('#chatInput').addEventListener('input', autoGrowInput);
+  $('#chatInput').addEventListener('paste', tgPasteFile);
   $('#chatAttachBtn').addEventListener('click', () => $('#chatFile').click());
   $('#chatFile').addEventListener('change', tgSendFile);
   $('#chatStickerBtn').addEventListener('click', () => togglePicker());
@@ -2491,6 +2652,7 @@ function initMsgrEvents(){
     if (st) stickerSend(st.dataset.emoji);
   });
   $('#msgrLogoutBtn').addEventListener('click', tgLogout);
+  $('#msgrAvatarBtn').addEventListener('click', tgSetAvatar);
   $('#msgrPluginsBtn').addEventListener('click', openPlugins);
   $('#pluginModalClose').addEventListener('click', () => $('#pluginModal').hidden = true);
   $('#pluginReloadBtn').addEventListener('click', async () => { if (!api()) return; try { const r = await api().tg_plugins_reload(); if (r) renderPluginList(r.plugins); } catch(e){} });
@@ -2512,21 +2674,30 @@ function initMsgrEvents(){
 /* ============ news ============ */
 let newsData = null;
 const NEWS_CHANNEL = 'mackkill';
+function applyNewsData(r){
+  if (!r || !r.html) return;
+  newsData = r;
+  const holder = document.createElement('div');
+  holder.innerHTML = r.html || '';
+  $('#nbTitle').textContent = (S && S.sub && S.sub.title) || 'MimiBox';
+  $('#nbDate').textContent = r.date || '';
+  $('#nbBody').textContent = (holder.textContent || '').replace(/\s+/g, ' ').trim();
+  $('#newsBanner').classList.add('show');
+  if (screen === 'news') renderNews();
+}
 async function checkNews(){
   if (!api()) return;
   if (S && S.settings.news_off) return;
   try {
     const r = await api().get_news();
     if (r && r.ok && !r.disabled && r.post_id !== (S && S.settings.last_news_id)) {
-      newsData = r;
-      const holder = document.createElement('div');
-      holder.innerHTML = r.html || '';
-      $('#nbTitle').textContent = (S && S.sub && S.sub.title) || 'MimiBox';
-      $('#nbDate').textContent = r.date || '';
-      $('#nbBody').textContent = (holder.textContent || '').replace(/\s+/g, ' ').trim();
-      $('#newsBanner').classList.add('show');
+      applyNewsData(r);
+    } else if (!r || !r.ok) {
+      if (api()) api().news_via_tg(NEWS_CHANNEL).catch(() => {});
     }
-  } catch(e){}
+  } catch(e){
+    if (api()) api().news_via_tg(NEWS_CHANNEL).catch(() => {});
+  }
 }
 async function renderNews(){
   const body = $('#newsBody');
@@ -2535,7 +2706,10 @@ async function renderNews(){
   body.innerHTML = '<div class="empty-state">' + esc(t('tgLoadingChat')) + '</div>';
   try {
     const r = await api().get_news();
-    if (!r || !r.ok) { body.innerHTML = '<div class="empty-state">' + esc(t('newsEmpty')) + '</div>'; return; }
+    if (!r || !r.ok) {
+      if (api()) api().news_via_tg(NEWS_CHANNEL).catch(() => {});
+      return;
+    }
     newsData = r;
     $('#newsDate').textContent = r.date || '';
     if (r.html) {
@@ -2560,36 +2734,12 @@ async function closeNews(){
 
 /* ============ Серийчик ============ */
 const SER_FEED_MB = 50;
-function serSvg(mood){
-  const eyes = mood === 'happy'
-    ? '<g stroke="#3a2440" stroke-width="3.2" fill="none" stroke-linecap="round"><path d="M74 112q7-9 14 0"/><path d="M112 112q7-9 14 0"/></g>'
-    : mood === 'hungry'
-      ? '<g><ellipse cx="81" cy="113" rx="6.5" ry="6.5" fill="#3a2440"/><ellipse cx="119" cy="113" rx="6.5" ry="6.5" fill="#3a2440"/><path d="M82 122l4 2M118 122l4 2" stroke="#9fd8ff" stroke-width="2.4" stroke-linecap="round"/></g>'
-      : '<g><ellipse cx="81" cy="112" rx="7" ry="8.6" fill="#3a2440"/><ellipse cx="81" cy="109" rx="2.7" ry="3.1" fill="#fff"/><ellipse cx="119" cy="112" rx="7" ry="8.6" fill="#3a2440"/><ellipse cx="119" cy="109" rx="2.7" ry="3.1" fill="#fff"/></g>';
-  const mouth = mood === 'happy'
-    ? '<path d="M93 131q7 8 14 0" stroke="#e25b78" stroke-width="3" fill="none" stroke-linecap="round"/>'
-    : mood === 'hungry'
-      ? '<path d="M94 135q6-5 12 0" stroke="#e25b78" stroke-width="3" fill="none" stroke-linecap="round"/>'
-      : '<path d="M93 133q7 4 14 0" stroke="#e25b78" stroke-width="3" fill="none" stroke-linecap="round"/>';
-  return '<svg viewBox="0 0 200 250" class="ser-svg" aria-hidden="true">' +
-    '<defs>' +
-      '<linearGradient id="serHairG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="var(--ser-hairA)"/><stop offset="1" stop-color="var(--ser-hairB)"/></linearGradient>' +
-      '<radialGradient id="serGlowG" cx="50%" cy="45%" r="60%"><stop offset="0" stop-color="var(--ser-glow)" stop-opacity=".55"/><stop offset="1" stop-color="var(--ser-glow)" stop-opacity="0"/></radialGradient>' +
-    '</defs>' +
-    '<circle cx="100" cy="120" r="112" fill="url(#serGlowG)"/>' +
-    '<path d="M56 84 C 36 150 46 200 76 214 L 82 196 C 60 178 56 130 64 92 Z" fill="url(#serHairG)"/>' +
-    '<path d="M144 84 C 164 150 154 200 124 214 L 118 196 C 140 178 144 130 136 92 Z" fill="url(#serHairG)"/>' +
-    '<path d="M52 96 C 50 44 150 44 148 96 C 148 78 140 64 130 64 C 120 64 116 74 108 74 C 100 74 96 62 84 62 C 70 62 58 76 56 92 Z" fill="url(#serHairG)"/>' +
-    '<ellipse cx="100" cy="120" rx="42" ry="47" fill="var(--ser-skin)"/>' +
-    eyes +
-    '<g fill="var(--ser-blush)" opacity=".65"><ellipse cx="70" cy="125" rx="8" ry="4.4"/><ellipse cx="130" cy="125" rx="8" ry="4.4"/></g>' +
-    mouth +
-    '<path d="M100 152 C 88 152 78 162 78 176 L 122 176 C 122 162 112 152 100 152 Z" fill="var(--ser-dressA)"/>' +
-    '<path d="M92 152 L 100 168 L 108 152 Z" fill="var(--ser-dressB)"/>' +
-    '<path d="M56 90 C 54 118 64 138 78 146 C 69 130 66 108 70 92 Z" fill="url(#serHairG)"/>' +
-    '<path d="M144 90 C 146 118 136 138 122 146 C 131 130 134 108 130 92 Z" fill="url(#serHairG)"/>' +
-    (mood === 'hungry' ? '<path d="M171 50q8 5 0 10q-8-5 0-10z" fill="#9fd8ff"/>' : '') +
-    '</svg>';
+let serAvatar = '';
+function serStage(mood){
+  if (serAvatar) {
+    return '<img class="ser-photo" src="data:image/png;base64,' + serAvatar + '" alt="Серийчик" aria-hidden="true">';
+  }
+  return '<div class="ser-ph">🖤</div>';
 }
 async function renderSer(){
   const root = $('#serRoot');
@@ -2597,6 +2747,7 @@ async function renderSer(){
   if (!api()) { root.innerHTML = ''; return; }
   let st = S;
   try { const r = await api().get_state(); if (r) { applyState(r); st = r; } } catch(e){}
+  try { const a = await api().ser_get_avatar(); serAvatar = (a && a.data) ? a.data : ''; } catch(e){ serAvatar = ''; }
   const ser = (st && st.ser) || {};
   const pct = ser.xp_next ? Math.min(100, Math.round((ser.xp || 0) * 100 / ser.xp_next)) : 0;
   const hunger = ser.hunger != null ? ser.hunger : 100;
@@ -2608,7 +2759,7 @@ async function renderSer(){
   root.innerHTML =
     '<div class="ser-wrap ser-mood-' + esc(mood) + '">' +
       '<div class="glass ser-card">' +
-        '<div class="ser-stage">' + serSvg(mood) +
+        '<div class="ser-stage">' + serStage(mood) +
           '<div class="ser-level-badge">Lv ' + (ser.level || 1) + '</div>' +
         '</div>' +
         '<div class="ser-info">' +
@@ -2617,14 +2768,51 @@ async function renderSer(){
           '<div class="ser-bar"><div class="ser-bar-label"><span>' + t('serXp') + '</span><span>' + (ser.xp || 0) + ' / ' + (ser.xp_next || 100) + '</span></div><div class="ser-bar-track"><div class="ser-bar-fill xp" style="width:' + pct + '%"></div></div></div>' +
           '<div class="ser-bar"><div class="ser-bar-label"><span>' + t('serFull') + '</span><span>' + hunger + '%</span></div><div class="ser-bar-track"><div class="ser-bar-fill hunger' + (hunger <= 25 ? ' warn' : '') + '" style="width:' + hunger + '%"></div></div></div>' +
           '<div class="ser-bank">🖤 ' + t('serBank') + ': <b>' + bankMB + '</b> MB · ' + t('serFed') + ': <b>' + fedMB + '</b> MB</div>' +
-          '<div class="ser-hint">' + t('serHint') + '</div>' +
-          '<div class="ser-actions"><button class="btn primary" id="serFeedBtn">' + t('serFeed') + '</button></div>' +
+          '<div class="ser-hint">' + t('serHint') + '<br>' + t('serPhotoHint') + '</div>' +
+          '<div class="ser-actions">' +
+            '<button class="btn primary" id="serFeedBtn">' + t('serFeed') + '</button>' +
+            '<button class="btn ghost small" id="serPhotoBtn">📷 ' + t('serPhoto') + '</button>' +
+            (serAvatar ? '<button class="btn ghost small danger" id="serPhotoDelBtn" title="' + t('serPhotoDel') + '">✕</button>' : '') +
+          '</div>' +
         '</div>' +
       '</div>' +
     '</div>';
   $('#serFeedBtn').addEventListener('click', serFeed);
   $('#serNameBtn').addEventListener('click', serSetName);
   $('#serName').addEventListener('keydown', e => { if (e.key === 'Enter') serSetName(); });
+  $('#serPhotoBtn').addEventListener('click', serPickPhoto);
+  const del = $('#serPhotoDelBtn'); if (del) del.addEventListener('click', serRemovePhoto);
+}
+async function serPickPhoto(){
+  if (!api()) return;
+  const inp = document.createElement('input');
+  inp.type = 'file';
+  inp.accept = 'image/*';
+  inp.onchange = () => {
+    const f = inp.files && inp.files[0];
+    if (!f) return;
+    if (f.size > 10 * 1024 * 1024) { toast(t('tgErrOp') + ' >10MB', 'err'); return; }
+    const rd = new FileReader();
+    rd.onload = async () => {
+      const b64 = String(rd.result).split(',', 2)[1];
+      let r;
+      try { r = await api().ser_set_avatar(b64); } catch(e){ r = {error: String(e)}; }
+      if (r && r.error) { toast(String(r.error), 'err'); return; }
+      if (r && r.state) applyState(r.state);
+      serAvatar = b64;
+      renderSer();
+      toast(t('serPhotoDone'), 'ok');
+    };
+    rd.readAsDataURL(f);
+  };
+  inp.click();
+}
+async function serRemovePhoto(){
+  if (!api()) return;
+  try { await api().ser_remove_avatar(); } catch(e){}
+  serAvatar = '';
+  renderSer();
+  toast(t('serPhotoDelDone'), 'ok');
 }
 async function serFeed(){
   if (!api()) return;

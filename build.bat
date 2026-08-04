@@ -1,6 +1,6 @@
 @echo off
 echo ============================================
-echo   Building LDK2ray.exe
+echo   Building MimiBox.exe
 echo ============================================
 echo.
 
@@ -30,26 +30,26 @@ echo   Version: %RAW_VER%
 echo.
 echo [3/4] Building app (onedir - легче по памяти и быстрее старт)...
 REM --noupx: сжатие UPX ломает библиотеки WebView2 и вызывает подозрения антивирусов
-py -3.12 -m PyInstaller --noconfirm --onedir --windowed --noupx --name LDK2ray --icon "ui/app.ico" --collect-all webview --collect-all pystray --add-data "ui;ui" main.py
+py -3.12 -m PyInstaller --noconfirm --onedir --windowed --noupx --name MimiBox --icon "ui/app.ico" --collect-all webview --collect-all pystray --add-data "ui;ui" main.py
 
 echo.
 echo [4/4] Restoring api.py...
 git checkout -- api.py
 
 REM -- Add authentication resources needed for subscription system
-py -3.12 -c "import os, shutil; dst = 'dist\\LDK2ray'; shutil.copy2('ui\\index.html', dst + '\\index.html')" 2>nul
+py -3.12 -c "import os, shutil; dst = 'dist\\MimiBox'; shutil.copy2('ui\\index.html', dst + '\\index.html')" 2>nul
 
 echo.
 echo [extra] Copying core + geo files next to the app...
 REM tun2socks.exe + wintun.dll нужны для режима "Туннель"
 for %%F in (xray.exe tun2socks.exe geoip.dat geosite.dat wintun.dll) do (
-    if exist "%%F" copy /y "%%F" "dist\LDK2ray\" >nul
+    if exist "%%F" copy /y "%%F" "dist\MimiBox\" >nul
 )
 
-if exist dist\LDK2ray\LDK2ray.exe (
-    echo  SUCCESS: dist\LDK2ray\  is ready ^(run LDK2ray.exe inside^).
-    if not exist dist\LDK2ray\xray.exe echo  Reminder: put xray.exe into dist\LDK2ray\ next to LDK2ray.exe.
-    if not exist dist\LDK2ray\tun2socks.exe echo  Reminder: tun2socks.exe is missing - Tunnel mode will be unavailable.
+if exist dist\MimiBox\MimiBox.exe (
+    echo  SUCCESS: dist\MimiBox\  is ready ^(run MimiBox.exe inside^).
+    if not exist dist\MimiBox\xray.exe echo  Reminder: put xray.exe into dist\MimiBox\ next to MimiBox.exe.
+    if not exist dist\MimiBox\tun2socks.exe echo  Reminder: tun2socks.exe is missing - Tunnel mode will be unavailable.
 ) else (
     echo  [!] Build failed - check the messages above.
 )

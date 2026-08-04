@@ -8,7 +8,7 @@
 #define MyAppVersion   "4.0.0"
 #define MyAppPublisher "mimidevil"
 #define MyAppURL       "https://t.me/mimidevil"
-#define MyAppExeName   "LDK2ray.exe"
+#define MyAppExeName   "MimiBox.exe"
 
 [Setup]
 AppId={{7F3C2A10-1D4B-49E1-9C3A-9D2B7A5E0001}}
@@ -41,14 +41,14 @@ Name: "en"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: checkedonce
 
 [Files]
-; onedir-сборка: забираем всю папку dist\\LDK2ray (exe + _internal)
-Source: "..\\dist\\LDK2ray\\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
+; onedir-сборка: забираем всю папку dist\\MimiBox (exe + _internal)
+Source: "..\\dist\\MimiBox\\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; runtime-зависимости: xray core, tun2socks, wintun, geo-базы
-Source: "..\\releases\\LDK2ray\\xray.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\\releases\\LDK2ray\\tun2socks.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\\releases\\LDK2ray\\wintun.dll"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\\releases\\LDK2ray\\geoip.dat"; DestDir: "{app}"; Flags: ignoreversion
-Source: "..\\releases\\LDK2ray\\geosite.dat"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\\releases\\MimiBox\\xray.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\\releases\\MimiBox\\tun2socks.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\\releases\\MimiBox\\wintun.dll"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\\releases\\MimiBox\\geoip.dat"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\\releases\\MimiBox\\geosite.dat"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\\{#MyAppExeName}"
@@ -59,6 +59,8 @@ Filename: "{app}\\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#MyAppName}
 
 [UninstallDelete]
 Type: filesandordirs; Name: "{app}\\data"
-; Настройки и список серверов в {userappdata}\\LDK2ray НЕ трогаем: обновление
+; Старый exe с прежним именем (LDK2ray.exe) может остаться от обновления.
+Type: files; Name: "{app}\\LDK2ray.exe"
+; Настройки и список серверов в {userappdata}\\MimiBox НЕ трогаем: обновление
 ; часто идёт через «удалить и поставить заново», и стирать их — значит терять
 ; подписку пользователя.

@@ -16,8 +16,9 @@ from dataclasses import asdict, fields
 
 from parsing import Server
 
-APP_FOLDER = "LDK2ray"          # имя папки данных (не меняем — иначе потеряются
-                                # настройки у тех, кто уже пользуется приложением)
+APP_FOLDER = "MimiBox"          # имя папки данных. При переезде со старого имени
+                                # (LDK2ray) данные переносятся автоматически —
+                                # см. _migrate_legacy_data().
 
 _last_error = ""                # последняя ошибка записи — показываем в UI
 
@@ -44,14 +45,47 @@ def _writable(path: str) -> bool:
 _data_dir_cache = ""
 
 
+def _migrate_legacy_data(new_dir: str) -> None:
+    """Переносит данные из старой папки данных %APPDATA%\\LDK2ray.
+
+    Новое имя папки — MimiBox. У тех, кто уже пользуется приложением, настройки,
+    серверы, Telegram-сессия и плагины лежат в LDK2ray — при первом запуске новой
+    версии перекладываем их целиком, чтобы ничего не потерялось.
+    """
+    import shutil
+    try:
+        base = os.environ.get("APPDATA")
+        if not base:
+            return
+        old = os.path.join(base, "LDK2ray")
+        if old == new_dir or not os.path.isdir(old):
+            return
+        if os.path.isdir(new_dir):
+            try:
+                if os.listdir(new_dir):
+                    return          # в новой папке уже есть данные — не трогаем
+            except OSError:
+                return
+            shutil.rmtree(new_dir, ignore_errors=True)
+        os.replace(old, new_dir)
+        log(f"[storage] данные перенесены из {old}")
+    except Exception as e:
+        log(f"[storage] миграция данных не удалась: {e}")
+
+
 def data_dir() -> str:
-    """Пользовательские данные храним в %APPDATA%\\LDK2ray — эта папка всегда
+    """Пользовательские данные храним в %APPDATA%\\MimiBox — эта папка всегда
     доступна на запись, поэтому настройки/серверы сохраняются независимо от того,
     куда установлено приложение (Program Files, флешка, только-для-чтения и т.п.).
     Если по какой-то причине она недоступна — спускаемся к запасным вариантам."""
     global _data_dir_cache
     if _data_dir_cache:
         return _data_dir_cache
+
+    if os.name == "nt":
+        base = os.environ.get("APPDATA")
+        if base:
+            _migrate_legacy_data(os.path.join(base, APP_FOLDER))
 
     candidates = []
     if os.name == "nt":
@@ -402,6 +436,52 @@ def load_font() -> str:
 def remove_font() -> bool:
     """Удаляет сохранённый шрифт."""
     path = os.path.join(data_dir(), "custom_font.ttf")
+    try:
+        if os.path.exists(path):
+            os.remove(path)
+        return True
+    except Exception:
+        return False
+
+
+def save_ser_avatar(data_b64: str) -> bool:
+    """Сохраняет своё фото для Серийчика (прозрачный PNG)."""
+    import base64
+    if not data_b64:
+        return False
+    try:
+        if "," in data_b64:
+            data_b64 = data_b64.split(",", 1)[1]
+        raw = base64.b64decode(data_b64)
+        if len(raw) > 10 * 1024 * 1024:
+            log("[storage] аватар Серийчика слишком большой (>10 МБ)")
+            return False
+        path = os.path.join(data_dir(), "ser_avatar.png")
+        return _atomic_write_raw(path, raw)
+    except Exception as e:
+        log(f"[storage] ошибка сохранения аватара Серийчика: {e}")
+        return False
+
+
+def load_ser_avatar() -> str:
+    """Читает своё фото Серийчика и возвращает голый base64 (без data: URI)."""
+    import base64
+    path = os.path.join(data_dir(), "ser_avatar.png")
+    try:
+        with open(path, "rb") as f:
+            raw = f.read()
+        if len(raw) > 10 * 1024 * 1024:
+            return ""
+        return base64.b64encode(raw).decode("ascii")
+    except FileNotFoundError:
+        return ""
+    except Exception:
+        return ""
+
+
+def remove_ser_avatar() -> bool:
+    """Удаляет своё фото Серийчика."""
+    path = os.path.join(data_dir(), "ser_avatar.png")
     try:
         if os.path.exists(path):
             os.remove(path)

@@ -586,11 +586,21 @@ class Api:
     def tg_logout(self):
         return {"ok": self._tg.logout()}
 
+    def tg_set_avatar(self, data_b64=""):
+        """Ставит аватар аккаунта: свой файл (base64) или иконку MimiBox."""
+        data_b64 = (data_b64 or "").strip()
+        if data_b64 and "," in data_b64:
+            data_b64 = data_b64.split(",", 1)[1]
+        return {"ok": self._tg.set_avatar(data_b64)}
+
     def tg_open(self, peer):
         return {"ok": self._tg.open_chat(peer)}
 
     def tg_refresh(self):
         return {"ok": self._tg.refresh_dialogs()}
+
+    def tg_archive(self, peer, on):
+        return {"ok": self._tg.set_archive(peer, bool(on))}
 
     def tg_send(self, peer, text):
         return {"ok": self._tg.send(peer, text)}
@@ -991,6 +1001,17 @@ class Api:
     def get_news(self):
         return self._fetch_channel_news("mackkill")
 
+    def news_via_tg(self, channel="mackkill"):
+        """Fallback новостей через Telegram-сессию, если HTTP-скрейпинг не сработал."""
+        try:
+            if (self._tg and self._tg.is_running()
+                    and self._tg.is_authorized()):
+                self._tg.news_fetch(channel)
+                return {"ok": True, "async": True}
+        except Exception as e:
+            storage.log("[news] fallback tg: %s" % e)
+        return {"ok": False, "async": False}
+
     def get_support_news(self):
         return self._fetch_channel_news("mackkill")
 
@@ -1203,6 +1224,22 @@ class Api:
             return {"ok": False, "error": "empty"}
         self.settings["ser_name"] = name[:24]
         self._save()
+        return {"ok": True, "state": self._state()}
+
+    def ser_set_avatar(self, data_b64):
+        """Ставит своё фото Серийчика (прозрачный PNG)."""
+        if not data_b64:
+            return {"ok": False, "error": "empty"}
+        ok = storage.save_ser_avatar(data_b64)
+        return {"ok": ok, "state": self._state()}
+
+    def ser_get_avatar(self):
+        """Возвращает своё фото Серийчика (голый base64)."""
+        return {"data": storage.load_ser_avatar()}
+
+    def ser_remove_avatar(self):
+        """Убирает своё фото — возвращается плейсхолдер."""
+        storage.remove_ser_avatar()
         return {"ok": True, "state": self._state()}
 
 

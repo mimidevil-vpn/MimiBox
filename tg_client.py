@@ -21,6 +21,7 @@
 import os
 import re
 import io
+import sys
 import base64
 import asyncio
 import threading
@@ -133,7 +134,7 @@ class TgMessenger:
             self._emit({"type": "need_credentials"})
             return
         try:
-            self._client = TelegramClient(self._session_path(), api_id, api_hash)
+            self._client = self._new_client(api_id, api_hash)
             await self._client.connect()
         except Exception as e:
             self._log("[tg] подключение не удалось: %s" % e)
@@ -152,6 +153,20 @@ class TgMessenger:
     # ------------------------------------------------------------- helpers
     def _session_path(self):
         return os.path.join(self._dir, _SESSION_FILE)
+
+    def _new_client(self, api_id, api_hash):
+        """Клиент Telethon с брендированным устройством в списке сессий."""
+        try:
+            return TelegramClient(
+                self._session_path(), api_id, api_hash,
+                device_model="MimiBox",
+                system_version="Windows",
+                app_version="4.0.0",
+                lang_code="en",
+                system_lang_code="en",
+            )
+        except TypeError:
+            return TelegramClient(self._session_path(), api_id, api_hash)
 
     def _media_dir(self):
         p = os.path.join(self._dir, _MEDIA_DIR)
@@ -380,11 +395,20 @@ class TgMessenger:
             self._emit_error("dialogs", str(e))
             return
         self._emit({"type": "dialogs", "dialogs": self._dialogs_list()})
+        self._schedule(self._dialogs_avatars())
+
+    async def _dialogs_avatars(self):
+        """Подтягиваем аватарки всех диалогов сразу (без открытия чата)."""
+        keys = list(self._dialogs_cache.keys())
+        for key in keys[:50]:
+            await self._avatar_flow(key)
 
     def _dialog_json(self, d, ent):
         last = ""
         if d.message is not None:
             last = self._summary_text(self._msg_json(d.message, ent))
+        raw = getattr(d, "dialog", None) or d
+        notify = getattr(raw, "notify_settings", None)
         return {
             "id": self._peer_key(ent),
             "title": self._entity_title(ent),
@@ -393,6 +417,8 @@ class TgMessenger:
             "last": last,
             "date": int(d.date.timestamp()) if getattr(d, "date", None) else 0,
             "username": getattr(ent, "username", "") or "",
+            "archived": bool(getattr(d, "archived", False)),
+            "muted": bool(getattr(notify, "mute_until", None)),
         }
 
     def _dialogs_list(self):
@@ -597,6 +623,20 @@ class TgMessenger:
                         "error": "no_media"})
             return
         mi = self._media_info(msg) or {}
+        if mi.get("kind") == "voice":
+            # голосовое — сразу в чат проигрывателем (data:URI), без сохранения
+            try:
+                data = await self._client.download_media(msg, file=bytes)
+            except Exception as e:
+                self._emit_error("media", str(e))
+                return
+            if data:
+                mime = mi.get("mime") or "audio/ogg"
+                self._emit({"type": "media", "peer_id": peer_key, "msg_id": msg_id,
+                            "kind": "voice", "mime": mime,
+                            "data": "data:%s;base64,%s"
+                                    % (mime, base64.b64encode(data).decode("ascii"))})
+                return
         if mi.get("kind") == "photo":
             try:
                 data = await self._client.download_media(msg, file=bytes)
@@ -657,6 +697,49 @@ class TgMessenger:
         self._emit({"type": "avatar", "peer_id": peer_key,
                     "data": "data:image/jpeg;base64," + data})
 
+    def _brand_icon(self):
+        """Фирменная иконка MimiBox (ui/app_icon.png) из ресурсов приложения."""
+        base = getattr(sys, "_MEIPASS", os.path.dirname(os.path.abspath(__file__)))
+        path = os.path.join(base, "ui", "app_icon.png")
+        if not os.path.exists(path):
+            path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                "ui", "app_icon.png")
+        try:
+            with open(path, "rb") as f:
+                return f.read()
+        except Exception:
+            return b""
+
+    async def _set_avatar_flow(self, image_b64=""):
+        """Ставит аватар аккаунта: свой файл или фирменную иконку MimiBox."""
+        if not self._client or not self._client.is_connected():
+            self._emit_error("set_avatar", "not_authorized")
+            return
+        raw = b""
+        if image_b64:
+            try:
+                if "," in image_b64:
+                    image_b64 = image_b64.split(",", 1)[1]
+                raw = base64.b64decode(image_b64)
+            except Exception as e:
+                self._emit_error("set_avatar", str(e))
+                return
+        if not raw:
+            raw = self._brand_icon()
+        if not raw:
+            self._emit_error("set_avatar", "no_icon")
+            return
+        try:
+            from telethon.tl.functions.photos import UploadProfilePhotoRequest
+            file = await self._client.upload_file(io.BytesIO(raw),
+                                                  file_name="avatar.png")
+            await self._client(UploadProfilePhotoRequest(file=file))
+        except Exception as e:
+            self._log("[tg] set_avatar: %s" % e)
+            self._emit_error("set_avatar", str(e))
+            return
+        self._emit({"type": "avatar_set"})
+
     # ------------------------------------------------------------- login
     async def _login_start(self, phone, api_id="", api_hash=""):
         api_id, api_hash = self._resolve_creds(api_id, api_hash)
@@ -664,7 +747,7 @@ class TgMessenger:
             self._emit({"type": "need_credentials"})
             return
         if self._client is None:
-            self._client = TelegramClient(self._session_path(), api_id, api_hash)
+            self._client = self._new_client(api_id, api_hash)
         if not self._client.is_connected():
             try:
                 await self._client.connect()
@@ -772,8 +855,63 @@ class TgMessenger:
     def logout(self):
         return self._schedule(self._logout())
 
+    def set_avatar(self, image_b64=""):
+        return self._schedule(self._set_avatar_flow(image_b64 or ""))
+
+    def news_fetch(self, channel):
+        return self._schedule(self._news_flow(channel))
+
+    async def _news_flow(self, channel):
+        """Fallback новостей: тянем последний пост канала через Telegram-сессию."""
+        if not self._client or not self._client.is_connected():
+            self._emit({"type": "news_error"})
+            return
+        try:
+            msgs = await self._client.get_messages(channel, limit=1)
+        except Exception as e:
+            self._log("[tg] news fallback: %s" % e)
+            self._emit({"type": "news_error"})
+            return
+        m = msgs[0] if msgs else None
+        if m is None:
+            self._emit({"type": "news_error"})
+            return
+        import html as _html
+        body = _html.escape(m.text or "")
+        body = re.sub(r"&#x27;", "'", body)
+        body = re.sub(r"(https?://[^\s<]+)", r'<a href="\1" target="_blank" rel="noopener">\1</a>', body)
+        body = body.replace("\n", "<br>")
+        date = ""
+        try:
+            if m.date:
+                date = m.date.isoformat()
+        except Exception:
+            pass
+        self._emit({
+            "type": "news",
+            "channel": channel,
+            "post_id": "tg_%d" % (getattr(m, "id", 0) or 0),
+            "date": date,
+            "html": body,
+        })
+
     def refresh_dialogs(self):
         return self._schedule(self._refresh_dialogs())
+
+    async def _archive_flow(self, peer_key, on):
+        entity = self._get_entity(peer_key)
+        if entity is None:
+            self._emit_error("archive", "no_entity")
+            return
+        try:
+            await self._client.edit_folder(entity, 1 if on else 0)
+        except Exception as e:
+            self._emit_error("archive", str(e))
+            return
+        await self._refresh_dialogs()
+
+    def set_archive(self, peer_key, on):
+        return self._schedule(self._archive_flow(peer_key, bool(on)))
 
     def open_chat(self, peer_key):
         return self._schedule(self._open_chat(peer_key))
