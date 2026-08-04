@@ -681,6 +681,33 @@ class Api:
         except Exception as e:
             return {"ok": False, "error": str(e)}
 
+    def tg_sticker_sets(self):
+        return {"ok": self._tg.sticker_sets()}
+
+    def tg_sticker_set_items(self, set_id):
+        return {"ok": self._tg.sticker_set_items(set_id)}
+
+    def tg_sticker_preview(self, doc_id):
+        return {"ok": self._tg.sticker_preview(doc_id)}
+
+    def tg_send_doc(self, peer, doc_id):
+        return {"ok": self._tg.send_doc(peer, doc_id)}
+
+    def tg_saved_gifs(self):
+        return {"ok": self._tg.saved_gifs()}
+
+    def tg_gif_search(self, query):
+        return {"ok": self._tg.gif_search(query)}
+
+    def tg_reply(self, peer, reply_to, text):
+        return {"ok": self._tg.reply(peer, reply_to, text)}
+
+    def tg_edit(self, peer, msg_id, text):
+        return {"ok": self._tg.edit(peer, msg_id, text)}
+
+    def tg_delete(self, peer, msg_id):
+        return {"ok": self._tg.delete(peer, msg_id)}
+
     def tg_plugins_list(self):
         return {"plugins": self._plugins.list()}
 
@@ -1046,7 +1073,10 @@ class Api:
                     data, _re.DOTALL
                 )
             if not post_blocks:
-                return {"ok": True, "html": "", "post_id": "", "date": "", "disabled": self.settings.get("news_off", False)}
+                # Постов не нашли: t.me/s может отдать «веб-апп»-страницу или канал
+                # приватный. Возвращаем ok=False — фронт переключится на загрузку
+                # новостей через Telegram-сессию аккаунта (news_via_tg).
+                return {"ok": False, "html": "", "post_id": "", "date": "", "disabled": self.settings.get("news_off", False)}
             post_id, post_html = post_blocks[-1]
             # Очищаем нежелательные теги, но сохраняем форматирование TG
             html = post_html

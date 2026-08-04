@@ -40,10 +40,17 @@ from telethon.tl.types import (
     User, Chat, Channel,
     DocumentAttributeSticker, DocumentAttributeAnimated,
     DocumentAttributeAudio, DocumentAttributeVideo, DocumentAttributeFilename,
+    DocumentAttributeCustomEmoji,
     MessageMediaContact, MessageMediaGeo, MessageMediaVenue,
     MessageMediaPoll, MessageMediaInvoice, MessageMediaGame,
-    MessageMediaWebPage,
+    MessageMediaWebPage, MessageEntityCustomEmoji, MessageActionStarGift,
 )
+from telethon.tl.functions.messages import (
+    GetAllStickersRequest, GetStickerSetRequest, GetSavedGifsRequest,
+    GetInlineBotResultsRequest, GetCustomEmojiDocumentsRequest, DeleteMessagesRequest,
+)
+from telethon.tl.functions import messages as _messages_fn
+from telethon.tl.types import InputStickerSetID
 
 # Публичная пара api_id/api_hash официального десктопного клиента Telegram.
 # Используется для входа «как в официальном приложении» — только телефон + код из SMS + пароль 2FA.
@@ -59,8 +66,9 @@ _MEDIA_DIR = "tg_media"
 # начинает заметно тормозить. Больше — сохраняем файлом и открываем.
 INLINE_IMG_LIMIT = 1_500_000
 
-_THUMB_LIMIT = 15          # миниатюр на открытие чата (чтобы не качать всё подряд)
-_THUMB_MAX = 4_000_000     # оригинал больше этого — миниатюру не строим
+_PREVIEW_LIMIT = 40         # превью медиа на открытие чата (новые в приоритете)
+_PREVIEW_MAX = 6_000_000    # оригинал больше этого — превью не строим
+_INLINE_MEDIA_MAX = 15_000_000  # виде/аудио/GIF до этого размера — сразу в чат
 
 
 def _norm_phone(raw: str) -> str:
@@ -106,6 +114,13 @@ class TgMessenger:
         self._sender_cache = {}       # user_id -> имя
         self._messages = {}           # peer_key -> [msg dict]
         self._pushed = set()          # (peer_key, msg_id) — уже отдали в UI
+        self._docs = {}               # document_id -> telethon Document (для пересылки)
+        self._preview_cache = {}      # document_id -> data URI (превью стикера/GIF)
+        self._sticker_sets = []       # [{id,title,emoji,count}] из Telegram
+        self._sticker_sets_cache = {} # set_id -> {access_hash, items:[{doc_id,emoji}]}
+        self._emoji_cache = {}        # document_id -> data URI (премиум-эмодзи)
+        self._gif_search_cache = {}   # query -> список doc_id
+        self._sets_loaded = False
 
     # ------------------------------------------------------------- lifecycle
     def start(self):
@@ -386,31 +401,52 @@ class TgMessenger:
             return None
         doc = getattr(media, "document", None)
         if doc is not None:
-            kind, fname = "file", ""
+            kind, fname, dur = "file", "", 0
             for a in (doc.attributes or []):
                 if isinstance(a, DocumentAttributeSticker):
                     kind = "sticker"
+                    break
+                if isinstance(a, DocumentAttributeCustomEmoji):
+                    kind = "emoji"
                     break
                 if isinstance(a, DocumentAttributeAnimated):
                     kind = "gif"
                 elif isinstance(a, DocumentAttributeAudio) and getattr(a, "voice", False):
                     kind = "voice"
+                    dur = int(getattr(a, "duration", 0) or 0)
                 elif isinstance(a, DocumentAttributeAudio):
                     kind = "audio"
+                    dur = int(getattr(a, "duration", 0) or 0)
                 elif isinstance(a, DocumentAttributeVideo):
                     kind = "video"
+                    dur = int(getattr(a, "duration", 0) or 0)
                 elif isinstance(a, DocumentAttributeFilename) and a.file_name:
                     fname = a.file_name
             return {"kind": kind, "mime": getattr(doc, "mime_type", "") or "",
-                    "size": int(getattr(doc, "size", 0) or 0), "file": fname}
+                    "size": int(getattr(doc, "size", 0) or 0), "file": fname,
+                    "doc_id": getattr(doc, "id", 0) or 0, "duration": dur}
         for t, kind in ((MessageMediaContact, "contact"), (MessageMediaGeo, "location"),
                         (MessageMediaVenue, "location"), (MessageMediaPoll, "poll"),
                         (MessageMediaInvoice, "invoice"), (MessageMediaGame, "game")):
             if isinstance(media, t):
                 return {"kind": kind, "mime": "", "size": 0, "file": ""}
+        if isinstance(getattr(m, "action", None), MessageActionStarGift):
+            return {"kind": "gift", "mime": "", "size": 0, "file": ""}
         if isinstance(media, MessageMediaWebPage):
             return None  # текст уже в message, отдельная карточка не нужна
         return {"kind": "file", "mime": "", "size": 0, "file": ""}
+
+    def _custom_emojis(self, m):
+        """Премиум-эмодзи в тексте: [(offset, length, document_id)] из сущностей."""
+        out = []
+        for ent in (getattr(m, "entities", None) or []):
+            if isinstance(ent, MessageEntityCustomEmoji):
+                out.append({
+                    "offset": int(ent.offset),
+                    "length": int(ent.length),
+                    "document_id": int(ent.document_id),
+                })
+        return out
 
     def _msg_json(self, m, chat=None):
         out = bool(getattr(m, "out", False))
@@ -430,6 +466,7 @@ class TgMessenger:
             "sender": sender_name,
             "sender_id": sender_id,
             "media": self._media_info(m),
+            "emojis": self._custom_emojis(m),
             "reply_to": int(m.reply_to_msg_id) if getattr(m, "reply_to_msg_id", None) else None,
         }
 
@@ -526,25 +563,41 @@ class TgMessenger:
             return
         msgs = []
         try:
-            async for m in self._client.iter_messages(entity, limit=100, reverse=True):
-                msgs.append(self._msg_json(m, entity))
+            # get_messages(limit=100) гарантированно отдаёт ПОСЛЕДНИЕ 100 сообщений
+            # (свежие сверху), в отличие от iter_messages(reverse=True), где
+            # из-за offset_id=1 + add_offset=-100 могли возвращаться САМЫЕ СТАРЫЕ.
+            raw = await self._client.get_messages(entity, limit=100)
+            msgs = [self._msg_json(m, entity) for m in reversed(raw)]
         except Exception as e:
             self._emit_error("messages", str(e))
             return
+        try:
+            await self._client.send_read_acknowledge(entity)
+        except Exception:
+            pass
         # метаданные о тех, кого нет в кэше — добьём в фоне
         unknown = [m["sender_id"] for m in msgs
                    if not m["out"] and m["sender_id"] and not self._sender_cache.get(m["sender_id"])]
         self._messages[peer_key] = msgs
+        d = self._dialogs_cache.get(peer_key)
+        if d is not None and d.get("unread"):
+            d["unread"] = 0
+            self._emit({"type": "dialogs", "dialogs": self._dialogs_list()})
         self._emit({"type": "messages", "peer_id": peer_key,
                     "messages": msgs, "peer": self._peer_json(entity)})
-        # миниатюры фото (до лимита)
-        count = 0
+        # превью медиа: фото/стикеры/GIF/видео подтягиваются сразу (см. _previews_flow)
+        media_ids = [m["id"] for m in msgs
+                     if m.get("media") and m["media"].get("kind") in ("photo", "sticker", "gif", "video")]
+        if media_ids:
+            self._schedule(self._previews_flow(peer_key, media_ids))
+        # премиум-эмодзи из сообщений — тянем документы с сервера
+        emoji_ids = []
         for m in msgs:
-            if m.get("media") and m["media"].get("kind") == "photo" and not m["out"]:
-                count += 1
-                if count > _THUMB_LIMIT:
-                    break
-                self._schedule(self._thumb_flow(peer_key, m["id"]))
+            for e in m.get("emojis") or []:
+                if e["document_id"] not in emoji_ids:
+                    emoji_ids.append(e["document_id"])
+        if emoji_ids:
+            self._schedule(self._emoji_flow(emoji_ids))
         if unknown:
             self._schedule(self._enrich_senders(peer_key, unknown))
         self._schedule(self._avatar_flow(peer_key))
@@ -642,6 +695,8 @@ class TgMessenger:
         try:
             self._client.add_event_handler(self._on_new_message,
                                            events.NewMessage())
+            self._client.add_event_handler(self._on_message_edited,
+                                           events.MessageEdited())
         except Exception as e:
             self._log("[tg] не удалось повесить приём: %s" % e)
 
@@ -662,38 +717,119 @@ class TgMessenger:
         ev = self._msg_json(msg, chat)
         ev["peer_title"] = self._entity_title(chat)
 
+        # новые медиа тоже сразу получают превью (фото/стикер/GIF/видео)
+        if ev.get("media") and ev["media"].get("kind") in ("photo", "sticker", "gif", "video"):
+            self._schedule(self._previews_flow(peer_key, [ev["id"]]))
+        # премиум-эмодзи в новых сообщениях — с сервера Telegram
+        emoji_ids = [e["document_id"] for e in (ev.get("emojis") or [])]
+        if emoji_ids:
+            self._schedule(self._emoji_flow(emoji_ids))
+
         if not ev["out"]:
             await self._call_hook(self._on_incoming, ev)
         self._push_message(peer_key, ev, "message")
 
     # ------------------------------------------------------------- media
-    async def _thumb_flow(self, peer_key, msg_id):
+    async def _previews_flow(self, peer_key, msg_ids):
+        """Превью медиа в чате: фото/стикеры/GIF/видео видны сразу.
+
+        Скачиваем только миниатюры/небольшие файлы и шлём data:URI-картинку.
+        Сначала — самые свежие сообщения (msg_ids уже в порядке «сверху вниз»).
+        """
         entity = self._get_entity(peer_key)
         if entity is None:
             return
+        for msg_id in msg_ids[:_PREVIEW_LIMIT]:
+            try:
+                msg = await self._client.get_messages(entity, ids=msg_id)
+            except Exception:
+                continue
+            if msg is None:
+                continue
+            mi = self._media_info(msg) or {}
+            kind = mi.get("kind") or ""
+            data = None
+            if kind == "photo":
+                try:
+                    data = await self._client.download_media(msg, file=bytes)
+                except Exception:
+                    data = None
+            elif kind in ("sticker", "gif", "video"):
+                # Сначала миниатюра документа, если она есть; иначе — файл целиком.
+                try:
+                    data = await self._client.download_media(msg, file=bytes, thumb=-1)
+                except Exception:
+                    data = None
+                if not data and kind == "sticker":
+                    try:
+                        data = await self._client.download_media(msg, file=bytes)
+                    except Exception:
+                        data = None
+            if not data or len(data) > _PREVIEW_MAX:
+                continue
+            try:
+                from PIL import Image
+                img = Image.open(io.BytesIO(data))
+                if img.mode in ("RGBA", "P"):
+                    img = img.convert("RGBA")
+                else:
+                    img = img.convert("RGB")
+                img.thumbnail((320, 320), Image.LANCZOS)
+                buf = io.BytesIO()
+                if img.mode == "RGBA":
+                    img.save(buf, format="PNG")
+                    mime = "image/png"
+                else:
+                    img.save(buf, format="JPEG", quality=80)
+                    mime = "image/jpeg"
+                thumb = base64.b64encode(buf.getvalue()).decode("ascii")
+            except Exception:
+                continue
+            self._emit({"type": "thumb", "peer_id": peer_key, "msg_id": msg_id,
+                        "kind": kind, "data": "data:%s;base64,%s" % (mime, thumb)})
+
+    async def _emoji_flow(self, document_ids):
+        """Скачивает премиум-эмодзи с сервера Telegram (по id документа)."""
+        new_ids = [i for i in document_ids if i and i not in self._emoji_cache]
+        if not new_ids:
+            return
         try:
-            msg = await self._client.get_messages(entity, ids=msg_id)
-        except Exception:
+            res = await self._client(GetCustomEmojiDocumentsRequest(
+                document_id=new_ids))
+            for doc in (res or []):
+                did = getattr(doc, "id", 0)
+                if not did:
+                    continue
+                try:
+                    data = await self._client.download_media(doc, file=bytes)
+                except Exception:
+                    continue
+                if not data or len(data) > _PREVIEW_MAX:
+                    continue
+                try:
+                    from PIL import Image
+                    img = Image.open(io.BytesIO(data))
+                    if img.mode in ("RGBA", "P"):
+                        img = img.convert("RGBA")
+                    else:
+                        img = img.convert("RGB")
+                    img.thumbnail((96, 96), Image.LANCZOS)
+                    buf = io.BytesIO()
+                    if img.mode == "RGBA":
+                        img.save(buf, format="PNG")
+                        mime = "image/png"
+                    else:
+                        img.save(buf, format="JPEG", quality=85)
+                        mime = "image/jpeg"
+                    self._emoji_cache[did] = "data:%s;base64,%s" % (
+                        mime, base64.b64encode(buf.getvalue()).decode("ascii"))
+                except Exception:
+                    continue
+        except Exception as e:
+            self._log("[tg] emoji flow: %s" % e)
             return
-        if msg is None or msg.photo is None:
-            return
-        try:
-            data = await self._client.download_media(msg, file=bytes)
-        except Exception:
-            return
-        if not data or len(data) > _THUMB_MAX:
-            return
-        try:
-            from PIL import Image
-            img = Image.open(io.BytesIO(data)).convert("RGB")
-            img.thumbnail((256, 256), Image.LANCZOS)
-            buf = io.BytesIO()
-            img.save(buf, format="JPEG", quality=78)
-            thumb = base64.b64encode(buf.getvalue()).decode("ascii")
-        except Exception:
-            return
-        self._emit({"type": "thumb", "peer_id": peer_key, "msg_id": msg_id,
-                    "data": "data:image/jpeg;base64," + thumb})
+        if self._emoji_cache:
+            self._emit({"type": "emoji", "data": dict(self._emoji_cache)})
 
     async def _media_flow(self, peer_key, msg_id):
         entity = self._get_entity(peer_key)
@@ -732,7 +868,7 @@ class TgMessenger:
                 return
             if data and len(data) < INLINE_IMG_LIMIT:
                 self._emit({"type": "media", "peer_id": peer_key, "msg_id": msg_id,
-                            "mime": "image/jpeg",
+                            "kind": "photo", "mime": "image/jpeg",
                             "data": "data:image/jpeg;base64," +
                                     base64.b64encode(data).decode("ascii")})
                 return
@@ -744,7 +880,36 @@ class TgMessenger:
                 self._emit_error("media", str(e))
                 return
             self._emit({"type": "media", "peer_id": peer_key, "msg_id": msg_id,
-                        "path": p or path, "name": mi.get("file") or "photo.jpg"})
+                        "kind": "photo", "path": p or path,
+                        "name": mi.get("file") or "photo.jpg"})
+            return
+        if mi.get("kind") in ("gif", "video", "audio", "sticker"):
+            # медиа, которое можно показать прямо в приложении (предпросмотром)
+            try:
+                data = await self._client.download_media(msg, file=bytes)
+            except Exception as e:
+                self._emit_error("media", str(e))
+                return
+            mime = mi.get("mime") or ("image/gif" if mi.get("kind") == "gif"
+                                      else "video/mp4" if mi.get("kind") == "video"
+                                      else "audio/ogg" if mi.get("kind") == "audio"
+                                      else "image/webp")
+            if data and len(data) <= _INLINE_MEDIA_MAX:
+                self._emit({"type": "media", "peer_id": peer_key, "msg_id": msg_id,
+                            "kind": mi.get("kind"), "mime": mime,
+                            "data": "data:%s;base64,%s"
+                                    % (mime, base64.b64encode(data).decode("ascii"))})
+                return
+            path = self._save_msg_file(peer_key, msg_id, mi.get("file") or
+                                       ("media_%d.%s" % (msg_id, mime.split("/", 1)[-1])))
+            try:
+                p = await self._client.download_media(msg, file=path)
+            except Exception as e:
+                self._emit_error("media", str(e))
+                return
+            self._emit({"type": "media", "peer_id": peer_key, "msg_id": msg_id,
+                        "kind": mi.get("kind"), "path": p or path,
+                        "name": mi.get("file") or ("media_%d" % msg_id)})
             return
         # всё остальное — файлом
         name = mi.get("file") or ("media_%d" % msg_id)
@@ -755,11 +920,271 @@ class TgMessenger:
             self._emit_error("media", str(e))
             return
         self._emit({"type": "media", "peer_id": peer_key, "msg_id": msg_id,
-                    "path": p or path, "name": name})
+                    "kind": mi.get("kind") or "file", "path": p or path, "name": name})
 
     def _save_msg_file(self, peer_key, msg_id, name):
         safe = re.sub(r"[^\w.\- ]", "_", str(name))
         return os.path.join(self._media_dir(), "%s_%d_%s" % (peer_key, msg_id, safe))
+
+    # ------------------------------------------- стикеры / GIF / эмодзи (с сервера)
+    async def _sticker_sets_flow(self):
+        """Наборы стикеров и эмодзи из аккаунта Telegram (не локальные)."""
+        if not self._client or not self._client.is_connected():
+            self._emit({"type": "sticker_sets", "sets": self._sticker_sets})
+            return
+        try:
+            res = await self._client(GetAllStickersRequest(hash=0))
+            sets = list(getattr(res, "sets", None) or [])
+        except Exception as e:
+            self._log("[tg] sticker sets: %s" % e)
+            self._emit({"type": "sticker_sets", "sets": self._sticker_sets})
+            return
+        out = []
+        for s in sets[:14]:
+            sid = getattr(s, "id", 0)
+            a_hash = getattr(s, "access_hash", 0)
+            if sid in self._sticker_sets_cache:
+                info = self._sticker_sets_cache[sid]
+            else:
+                try:
+                    detail = await self._client(GetStickerSetRequest(
+                        stickerset=InputStickerSetID(sid, a_hash), hash=0))
+                except Exception:
+                    continue
+                info = self._collect_set(detail, sid, a_hash)
+                self._sticker_sets_cache[sid] = info
+            items = info.get("items") or []
+            if not items:
+                continue
+            out.append({
+                "id": sid,
+                "title": getattr(s, "title", "") or info.get("title", ""),
+                "emoji": bool(info.get("emoji")),
+                "count": len(items),
+            })
+        self._sticker_sets = out
+        self._sets_loaded = True
+        self._emit({"type": "sticker_sets", "sets": out})
+        # сразу же отдаём содержимое первого набора, чтобы пикер не ждал клика
+        if out:
+            await self._sticker_set_items_flow(out[0]["id"])
+
+    def _collect_set(self, detail, sid, a_hash):
+        docs = list(getattr(detail, "documents", None) or [])
+        packs = {}
+        for p in (getattr(detail, "packs", None) or []):
+            packs[int(p.document_id)] = getattr(p, "emoticon", "") or ""
+        is_emoji = False
+        items = []
+        for d in docs[:80]:
+            did = getattr(d, "id", 0)
+            self._docs[did] = d
+            e = packs.get(did, "")
+            for a in (getattr(d, "attributes", None) or []):
+                if isinstance(a, DocumentAttributeCustomEmoji):
+                    is_emoji = True
+            items.append({"doc_id": did, "emoji": e})
+        return {
+            "id": sid, "access_hash": a_hash,
+            "title": getattr(detail, "set", None) and getattr(detail.set, "title", "") or "",
+            "emoji": bool(is_emoji), "items": items,
+        }
+
+    async def _sticker_set_items_flow(self, set_id):
+        """Содержимое конкретного набора (doc_id + эмодзи) — отдаём в пикер."""
+        info = self._sticker_sets_cache.get(set_id)
+        if info is None:
+            for s in self._sticker_sets:
+                if s["id"] == set_id:
+                    await self._sticker_sets_flow()
+                    break
+            info = self._sticker_sets_cache.get(set_id)
+            if info is None:
+                return
+        self._emit({"type": "sticker_items", "set_id": set_id,
+                    "emoji": bool(info.get("emoji")),
+                    "items": info.get("items") or []})
+
+    async def _sticker_preview_flow(self, doc_id):
+        """Превью стикера/GIF: миниатюра документа с сервера (data:URI)."""
+        doc_id = int(doc_id)
+        if doc_id in self._preview_cache:
+            self._emit({"type": "sticker_preview", "doc_id": doc_id,
+                        "data": self._preview_cache[doc_id]})
+            return
+        doc = self._docs.get(doc_id)
+        if doc is None:
+            return
+        data = None
+        try:
+            data = await self._client.download_media(doc, file=bytes, thumb=-1)
+        except Exception:
+            data = None
+        if not data:
+            try:
+                data = await self._client.download_media(doc, file=bytes)
+            except Exception:
+                data = None
+        if not data or len(data) > _PREVIEW_MAX:
+            return
+        try:
+            from PIL import Image
+            img = Image.open(io.BytesIO(data))
+            if img.mode in ("RGBA", "P"):
+                img = img.convert("RGBA")
+            else:
+                img = img.convert("RGB")
+            img.thumbnail((160, 160), Image.LANCZOS)
+            buf = io.BytesIO()
+            if img.mode == "RGBA":
+                img.save(buf, format="PNG")
+                mime = "image/png"
+            else:
+                img.save(buf, format="JPEG", quality=82)
+                mime = "image/jpeg"
+            data_uri = "data:%s;base64,%s" % (
+                mime, base64.b64encode(buf.getvalue()).decode("ascii"))
+        except Exception:
+            return
+        self._preview_cache[doc_id] = data_uri
+        self._emit({"type": "sticker_preview", "doc_id": doc_id, "data": data_uri})
+
+    async def _send_doc_flow(self, peer_key, doc_id):
+        """Отправка стикера/GIF/эмодзи по document_id (документ уже в кэше)."""
+        entity = self._get_entity(peer_key)
+        if entity is None:
+            self._emit_error("send", "no_entity")
+            return
+        doc = self._docs.get(int(doc_id))
+        if doc is None:
+            self._emit_error("send", "no_doc")
+            return
+        try:
+            msg = await self._client.send_file(entity, doc)
+        except Exception as e:
+            self._emit_error("send", str(e))
+            return
+        self._push_message(peer_key, self._msg_json(msg), "sent")
+
+    async def _saved_gifs_flow(self):
+        if not self._client or not self._client.is_connected():
+            self._emit({"type": "saved_gifs", "gifs": []})
+            return
+        try:
+            res = await self._client(GetSavedGifsRequest(hash=0))
+            gifs = list(getattr(res, "gifs", None) or [])
+        except Exception as e:
+            self._log("[tg] saved gifs: %s" % e)
+            self._emit({"type": "saved_gifs", "gifs": []})
+            return
+        out = []
+        for d in gifs[:40]:
+            did = getattr(d, "id", 0)
+            self._docs[did] = d
+            out.append({"doc_id": did})
+        self._emit({"type": "saved_gifs", "gifs": out})
+
+    async def _gif_search_flow(self, query):
+        query = (query or "").strip()
+        if not query:
+            return
+        if not self._client or not self._client.is_connected():
+            self._emit({"type": "gif_search", "q": query, "gifs": []})
+            return
+        peer = self._me if self._me is not None else (await self._client.get_me())
+        if peer is None:
+            self._emit({"type": "gif_search", "q": query, "gifs": []})
+            return
+        try:
+            res = await self._client(GetInlineBotResultsRequest(
+                bot="@gif", peer=peer, query=query, offset=""))
+        except Exception as e:
+            self._log("[tg] gif search: %s" % e)
+            self._emit({"type": "gif_search", "q": query, "gifs": []})
+            return
+        out = []
+        for r in (getattr(res, "results", None) or []):
+            doc = getattr(r, "document", None)
+            if doc is None:
+                continue
+            did = getattr(doc, "id", 0)
+            self._docs[did] = doc
+            out.append({"doc_id": did})
+            if len(out) >= 20:
+                break
+        self._gif_search_cache[query] = [g["doc_id"] for g in out]
+        self._emit({"type": "gif_search", "q": query, "gifs": out})
+
+    # ------------------------------------------------------------- reply/edit/delete
+    async def _reply_flow(self, peer_key, reply_to, text):
+        entity = self._get_entity(peer_key)
+        if entity is None:
+            self._emit_error("send", "no_entity")
+            return
+        try:
+            msg = await self._client.send_message(entity, text, reply_to=int(reply_to))
+        except Exception as e:
+            self._emit_error("send", str(e))
+            return
+        self._push_message(peer_key, self._msg_json(msg), "sent")
+
+    async def _edit_flow(self, peer_key, msg_id, text):
+        entity = self._get_entity(peer_key)
+        if entity is None:
+            self._emit_error("edit", "no_entity")
+            return
+        try:
+            await self._client.edit_message(entity, int(msg_id), text)
+        except Exception as e:
+            self._emit_error("edit", str(e))
+            return
+        lst = self._messages.get(peer_key)
+        if lst is not None:
+            for m in lst:
+                if m["id"] == int(msg_id):
+                    m["text"] = text
+                    break
+        self._emit({"type": "updated", "peer_id": peer_key, "msg_id": int(msg_id),
+                    "text": text})
+
+    async def _delete_flow(self, peer_key, msg_id):
+        entity = self._get_entity(peer_key)
+        if entity is None:
+            self._emit_error("delete", "no_entity")
+            return
+        try:
+            await self._client(DeleteMessagesRequest(id=[int(msg_id)], revoke=True))
+        except Exception:
+            try:
+                await self._client(DeleteMessagesRequest(id=[int(msg_id)]))
+            except Exception as e:
+                self._emit_error("delete", str(e))
+                return
+        lst = self._messages.get(peer_key)
+        if lst is not None:
+            self._messages[peer_key] = [m for m in lst if m["id"] != int(msg_id)]
+        self._emit({"type": "deleted", "peer_id": peer_key, "msg_id": int(msg_id)})
+
+    async def _on_message_edited(self, event):
+        try:
+            msg = event.message
+            chat = await event.get_chat()
+        except Exception:
+            return
+        if msg is None or chat is None:
+            return
+        peer_key = self._peer_key(chat)
+        lst = self._messages.get(peer_key)
+        if lst is None:
+            return
+        for m in lst:
+            if m["id"] == msg.id:
+                m["text"] = getattr(msg, "message", "") or ""
+                m["emojis"] = self._custom_emojis(msg)
+                break
+        self._emit({"type": "updated", "peer_id": peer_key, "msg_id": int(msg.id),
+                    "text": getattr(msg, "message", "") or "",
+                    "emojis": self._custom_emojis(msg)})
 
     async def _avatar_flow(self, peer_key):
         ent = self._get_entity(peer_key)
@@ -1019,3 +1444,30 @@ class TgMessenger:
 
     def avatar(self, peer_key):
         return self._schedule(self._avatar_flow(peer_key))
+
+    def sticker_sets(self):
+        return self._schedule(self._sticker_sets_flow())
+
+    def sticker_set_items(self, set_id):
+        return self._schedule(self._sticker_set_items_flow(int(set_id)))
+
+    def sticker_preview(self, doc_id):
+        return self._schedule(self._sticker_preview_flow(int(doc_id)))
+
+    def send_doc(self, peer_key, doc_id):
+        return self._schedule(self._send_doc_flow(peer_key, doc_id))
+
+    def saved_gifs(self):
+        return self._schedule(self._saved_gifs_flow())
+
+    def gif_search(self, query):
+        return self._schedule(self._gif_search_flow(query))
+
+    def reply(self, peer_key, reply_to, text):
+        return self._schedule(self._reply_flow(peer_key, reply_to, text))
+
+    def edit(self, peer_key, msg_id, text):
+        return self._schedule(self._edit_flow(peer_key, msg_id, text))
+
+    def delete(self, peer_key, msg_id):
+        return self._schedule(self._delete_flow(peer_key, msg_id))

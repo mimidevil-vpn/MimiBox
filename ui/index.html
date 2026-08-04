@@ -518,10 +518,51 @@ select.input{appearance:none;background-image:linear-gradient(45deg,transparent 
 .msg-media .mm-size{font-size:10px;color:var(--faint)}
 .msg img.msg-photo{display:block;margin-top:4px;max-width:240px;max-height:200px;border-radius:14px;cursor:zoom-in;
   border:1px solid var(--line)}
+.msg img.msg-sticker{max-width:150px;max-height:150px;border:none;background:transparent}
+.msg .msg-reply{display:block;font-size:10.5px;color:var(--lav);background:rgba(225,139,255,.10);
+  border-left:3px solid var(--lav);border-radius:6px;padding:3px 8px;margin-bottom:5px;max-width:220px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.msg .msg-emoji{display:inline-block;width:1.45em;height:1.45em;vertical-align:-0.32em;margin:0 1px}
+.msg .msg-emoji.pending{opacity:.35}
+.msg .msg-gif{position:relative;display:inline-block;margin-top:4px;cursor:pointer}
+.msg .msg-gif img.msg-photo{margin-top:0;max-width:240px;max-height:200px}
+.msg .msg-gif .mm-play{position:absolute;inset:0;margin:auto;width:38px;height:38px;border-radius:50%;
+  background:rgba(0,0,0,.55);color:#fff;display:grid;place-items:center;font-size:14px;padding-left:3px;pointer-events:none}
+.msg-media.mm-gift{cursor:default}
 .mm-voice .mm-play{width:30px;height:30px;flex:none;border-radius:50%;display:grid;place-items:center;
   background:var(--accent-grad);color:#fff;font-size:11px;padding-left:2px;box-shadow:0 3px 10px var(--glow-pink)}
 .mm-voice:hover .mm-play{transform:scale(1.08)}
 audio.msg-voice{max-width:260px;height:40px;margin-top:4px;border-radius:14px;background:rgba(0,0,0,.28);border:1px solid var(--line)}
+.msg-replybar{display:flex;align-items:center;gap:8px;margin:8px 16px 0;padding:7px 12px;border-radius:12px;
+  background:rgba(225,139,255,.10);border:1px solid rgba(225,139,255,.3);font-size:11.5px;color:var(--lav)}
+.msg-replybar[hidden]{display:none}
+.msg-replybar b{font-weight:800;flex:none}
+.msg-replybar span{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.msg-replybar button{background:none;border:none;color:var(--faint);cursor:pointer;font-size:12px;flex:none;padding:2px 4px}
+.msg-replybar button:hover{color:#fff}
+.msg-replybar.editing{border-color:rgba(125,226,168,.5);background:rgba(125,226,168,.08)}
+.picker-search{display:flex;gap:8px;padding:10px 12px 4px}
+.picker-search input{flex:1}
+.picker-sets{display:flex;gap:6px;padding:8px 12px 0;overflow-x:auto;flex:none}
+.picker-set{background:rgba(0,0,0,.25);border:1px solid var(--line);border-radius:999px;padding:4px 10px;
+  font-size:10.5px;color:var(--dim);cursor:pointer;white-space:nowrap;flex:none}
+.picker-set.on{background:rgba(225,139,255,.18);color:#fff;border-color:rgba(225,139,255,.5)}
+.picker-grid{padding:10px 12px 14px;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));
+  gap:8px;align-content:start}
+.picker-cell{position:relative;aspect-ratio:1;border-radius:12px;background:rgba(0,0,0,.22);border:1px solid var(--line-soft);
+  display:grid;place-items:center;cursor:pointer;overflow:hidden;transition:transform .12s var(--ease),border-color .15s}
+.picker-cell:hover{transform:scale(1.06);border-color:rgba(225,139,255,.45)}
+.picker-cell img{max-width:92%;max-height:92%;border-radius:6px}
+.picker-cell img.loading{opacity:0}
+.picker-cell.loading::after{content:'…';position:absolute;color:var(--faint);font-size:12px}
+.picker-cell .loading{font-size:9px;color:var(--faint)}
+.picker-cell.emoji{font-size:26px;background:none;border:none}
+.msg-menu{position:fixed;z-index:120;min-width:160px;background:rgba(28,28,34,.96);border:1px solid var(--line);
+  border-radius:14px;padding:6px;box-shadow:0 16px 50px rgba(0,0,0,.55);backdrop-filter:blur(10px)}
+.msg-menu button{display:flex;align-items:center;gap:9px;width:100%;background:none;border:none;color:var(--text);
+  font-size:12.5px;padding:8px 10px;border-radius:9px;cursor:pointer;text-align:left}
+.msg-menu button:hover{background:rgba(225,139,255,.14)}
+.msg-menu button span{white-space:nowrap}
 
 .msgr-chat-input{flex:none;display:flex;align-items:flex-end;gap:8px;padding:12px 16px;border-top:1px solid var(--line-soft)}
 .msgr-chat-input textarea{flex:1;resize:none;min-height:42px;max-height:140px;padding:10px 13px;font-size:13px;line-height:1.4;border-radius:16px}
@@ -535,13 +576,8 @@ audio.msg-voice{max-width:260px;height:40px;margin-top:4px;border-radius:14px;ba
 .picker-tab.on{background:rgba(225,139,255,.14);color:#fff}
 .picker-x{margin-left:auto;background:none;border:none;color:var(--dim);cursor:pointer;font-size:14px;padding:4px 8px}
 .picker-x:hover{color:var(--text)}
-.picker-body{padding:4px 14px 14px;max-height:220px;overflow-y:auto}
-.sticker-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:6px}
-.sticker-cell{font-size:26px;line-height:1;text-align:center;padding:9px 0;border-radius:14px;cursor:pointer;transition:all .16s var(--ease);background:transparent}
-.sticker-cell:hover{background:rgba(225,139,255,.16);transform:scale(1.18)}
-.gif-row{display:flex;gap:8px;align-items:center}
-.gif-row .input{flex:1}
-.picker-note{font-size:11.5px;color:var(--dim);margin-top:8px;line-height:1.5}
+.picker-body{padding:0;max-height:250px;overflow-y:auto;display:flex;flex-direction:column}
+.picker-note{font-size:11.5px;color:var(--dim);padding:14px;line-height:1.5}
 
 /* ---- плагины ---- */
 .msgr-modal{position:fixed;inset:0;z-index:90;display:flex;align-items:center;justify-content:center;
@@ -559,10 +595,18 @@ audio.msg-voice{max-width:260px;height:40px;margin-top:4px;border-radius:14px;ba
 .msgr-modal-foot .import-hint{flex:1;margin:0;font-size:11px}
 .msgr-modal-foot .btn{padding:7px 12px;font-size:10.5px}
 
-/* ---- просмотр фото ---- */
+/* ---- просмотр фото/видео ---- */
 .photo-viewer{position:fixed;inset:0;z-index:95;display:flex;align-items:center;justify-content:center;
   background:rgba(0,0,0,.82);backdrop-filter:blur(8px);cursor:zoom-out;padding:30px}
-.photo-viewer img{max-width:92vw;max-height:88vh;border-radius:12px;box-shadow:0 20px 70px rgba(0,0,0,.7)}
+.photo-viewer[hidden]{display:none}
+.photo-viewer img,.photo-viewer video{max-width:92vw;max-height:88vh;border-radius:12px;box-shadow:0 20px 70px rgba(0,0,0,.7)}
+.photo-viewer video{background:#000;outline:none}
+.photo-viewer audio{width:min(90vw,560px);background:rgba(0,0,0,.45);border-radius:14px;padding:10px}
+.pv-title{position:absolute;top:14px;left:0;right:0;text-align:center;font-size:12px;color:var(--faint);
+  letter-spacing:.08em;text-overflow:ellipsis;overflow:hidden;white-space:nowrap;padding:0 60px}
+.pv-close{position:absolute;top:12px;right:14px;width:34px;height:34px;border-radius:50%;display:grid;place-items:center;
+  background:rgba(255,255,255,.08);cursor:pointer;color:var(--text);font-size:14px;z-index:2}
+.pv-close:hover{background:rgba(255,255,255,.16)}
 
 /* ---------- reduced motion ---------- */
 @media (prefers-reduced-motion: reduce){
@@ -1191,6 +1235,7 @@ audio.msg-voice{max-width:260px;height:40px;margin-top:4px;border-radius:14px;ba
                 <div class="empty-state" data-i18n="tgChooseChat">Выберите чат слева</div>
               </div>
               <div class="msgr-composer">
+                <div class="msg-replybar" id="replyBar" hidden></div>
                 <div class="msgr-chat-input">
                   <button class="btn ghost" id="chatAttachBtn" title="Файл">📎</button>
                   <input type="file" id="chatFile" hidden>
@@ -1202,6 +1247,7 @@ audio.msg-voice{max-width:260px;height:40px;margin-top:4px;border-radius:14px;ba
                   <div class="picker-head">
                     <button class="picker-tab on" data-tab="sticker" data-i18n="tgMediaSticker">Стикер</button>
                     <button class="picker-tab" data-tab="gif" data-i18n="tgMediaGif">GIF</button>
+                    <button class="picker-tab" data-tab="emoji" data-i18n="tgMediaEmoji">Эмодзи</button>
                     <button class="picker-x" id="pickerClose">✕</button>
                   </div>
                   <div class="picker-body" id="pickerBody"></div>
@@ -1282,7 +1328,13 @@ audio.msg-voice{max-width:260px;height:40px;margin-top:4px;border-radius:14px;ba
   </div>
 </div>
 
-<div class="photo-viewer" id="photoViewer" hidden><img id="photoViewerImg" src="" alt=""></div>
+<div class="photo-viewer" id="photoViewer" hidden>
+  <div class="pv-title" id="pvTitle"></div>
+  <img id="photoViewerImg" src="" alt="">
+  <video id="photoViewerVideo" controls muted autoplay></video>
+  <audio id="photoViewerAudio" controls autoplay></audio>
+  <div class="pv-close" id="photoViewerClose">✕</div>
+</div>
 
 <script>
 'use strict';
@@ -1346,6 +1398,7 @@ const I18N = {
     navMessenger:'Мессенджер',
     navNews:'Новости', navSer:'Серийчик', navSeirichik:'Серийчик',
     newsDesc:'Последний пост из канала @mackkill.', newsEmpty:'Пока нет новостей',
+    newsErr:'Новости недоступны: вход в Telegram не выполнен или канал приватный. Открой канал через «Открыть канал».',
     newsRefresh:'Обновить', openChannel:'Открыть канал', newsRead:'Прочитано',
     serDesc:'Твой питомец Серийчик растёт от VPN-трафика.',
     serFeed:'Покормить · 50 MB', serXp:'Опыт', serFull:'Сытость', serBank:'Запас трафика',
@@ -1377,7 +1430,12 @@ const I18N = {
     tgArchive:'Архив', tgUnarchive:'Из архива', tgMuted:'Уведомления выключены',
     tgOpenFile:'Открыть файл', tgDownloading:'Скачивание…', tgYesterday:'вчера', tgNoDialogs:'Чатов нет',
     tgBadPhone:'Введите номер телефона', tgBadCode:'Введите код', tgBadPass:'Введите пароль',
-    tgFlood:'Слишком много попыток, подождите', tgNoPlugins:'Плагинов пока нет'
+    tgFlood:'Слишком много попыток, подождите', tgNoPlugins:'Плагинов пока нет',
+    tgMediaEmoji:'Эмодзи', tgGift:'Подарок', tgLoadingStickers:'Загрузка стикеров…', tgLoadingGifs:'Загрузка GIF…',
+    tgGifSearchHint:'Поиск GIF…', tgCopy:'Копировать', tgCopied:'Скопировано', tgNoCopy:'Копировать нечего',
+    tgReply:'Ответить', tgReplyTitle:'Ответ', tgReplyUnknown:'Недоступное сообщение',
+    tgEdit:'Редактировать', tgEditTitle:'Редактирование', tgEditNoText:'Можно редактировать только текст',
+    tgDelete:'Удалить', tgDeleteAsk:'Удалить сообщение?', tgCancel:'Отмена'
   },
   en: {
     navHome:'Home', navServers:'Servers', navRoutes:'Routes', navStats:'Statistics',
@@ -1436,6 +1494,7 @@ const I18N = {
     navMessenger:'Messenger',
     navNews:'News', navSer:'Mascot', navSeirichik:'Mascot',
     newsDesc:'Latest post from the @mackkill channel.', newsEmpty:'No news yet',
+    newsErr:'News unavailable: Telegram login missing or the channel is private. Open it via "Open channel".',
     newsRefresh:'Refresh', openChannel:'Open channel', newsRead:'Mark as read',
     serDesc:'Your pet grows from VPN traffic.',
     serFeed:'Feed · 50 MB', serXp:'XP', serFull:'Fullness', serBank:'Traffic bank',
@@ -1467,7 +1526,12 @@ const I18N = {
     tgArchive:'Archive', tgUnarchive:'Unarchive', tgMuted:'Notifications off',
     tgOpenFile:'Open file', tgDownloading:'Downloading…', tgYesterday:'yesterday', tgNoDialogs:'No chats',
     tgBadPhone:'Enter phone number', tgBadCode:'Enter the code', tgBadPass:'Enter password',
-    tgFlood:'Too many attempts, wait', tgNoPlugins:'No plugins yet'
+    tgFlood:'Too many attempts, wait', tgNoPlugins:'No plugins yet',
+    tgMediaEmoji:'Emoji', tgGift:'Gift', tgLoadingStickers:'Loading stickers…', tgLoadingGifs:'Loading GIFs…',
+    tgGifSearchHint:'Search GIFs…', tgCopy:'Copy', tgCopied:'Copied', tgNoCopy:'Nothing to copy',
+    tgReply:'Reply', tgReplyTitle:'Reply', tgReplyUnknown:'Unavailable message',
+    tgEdit:'Edit', tgEditTitle:'Editing', tgEditNoText:'Only text can be edited',
+    tgDelete:'Delete', tgDeleteAsk:'Delete this message?', tgCancel:'Cancel'
   }
 };
 let LANG = 'ru';
@@ -2079,6 +2143,16 @@ let TG = {
   archiveOpen: false,
   offline: false,
   lastDlgRefresh: 0,
+  emoji: {},
+  stickerSets: [],
+  stickerItems: {},
+  stickerCurrentSet: null,
+  emojiCurrentSet: null,
+  savedGifs: [],
+  gifSearchResults: [],
+  pickerPreviews: {},
+  replyTo: null,
+  editing: null,
 };
 function tgLoginHint(text, type){
   const h = $('#tgLoginHint');
@@ -2088,9 +2162,10 @@ function tgLoginHint(text, type){
 }
 function tgMediaLabel(mi){
   if (!mi) return '';
-  const map = {photo:'Фото', gif:'GIF', sticker:'Стикер', voice:'Голосовое', video:'Видео', audio:'Аудио', contact:'Контакт', location:'Геолокация', poll:'Опрос', invoice:'Платёж', game:'Игра', file:'Файл'};
+  const map = {photo:'Фото', gif:'GIF', sticker:'Стикер', voice:'Голосовое', video:'Видео', audio:'Аудио', contact:'Контакт', location:'Геолокация', poll:'Опрос', invoice:'Платёж', game:'Игра', gift:'Подарок', emoji:'Эмодзи', file:'Файл'};
   const label = map[mi.kind] || 'Файл';
-  return (mi.file && mi.kind === 'file' ? mi.file : label) + (mi.size ? ' · ' + fmtBytes(mi.size) : '');
+  const ext = (mi.file && mi.kind === 'file' ? mi.file : label) + (mi.size ? ' · ' + fmtBytes(mi.size) : '');
+  return ext;
 }
 function fmtTime(ts){
   if (!ts) return '';
@@ -2100,6 +2175,11 @@ function fmtTime(ts){
   const hm = d.toLocaleTimeString(loc, {hour:'2-digit', minute:'2-digit'});
   if (d.toDateString() === now.toDateString()) return hm;
   return d.toLocaleDateString(loc, {day:'numeric', month:'short'}) + ' ' + hm;
+}
+function fmtDur(sec){
+  sec = Math.max(0, Math.round(Number(sec) || 0));
+  const m = Math.floor(sec / 60), s = sec % 60;
+  return m + ':' + String(s).padStart(2, '0');
 }
 function setAva(el, data, title){
   if (!el) return;
@@ -2178,29 +2258,92 @@ function dlgRow(d){
       '<div class="dlg-bottom"><span class="dlg-last">' + esc(d.last || '') + '</span>' + unread + muted + '</div>' +
     '</div>' + archBtn + '</div>';
 }
+function renderMsgText(ev){
+  const t = document.createElement('div');
+  const emojis = ev.emojis || [];
+  const text = ev.text || '';
+  if (!emojis.length) { t.textContent = text; return t; }
+  let html = '';
+  let idx = 0;
+  emojis.forEach(e => {
+    const start = e.offset, end = e.offset + e.length;
+    html += esc(text.slice(idx, start));
+    const did = e.document_id;
+    const data = TG.emoji && TG.emoji[did];
+    const alt = esc(text.slice(start, end));
+    html += data
+      ? '<img class="msg-emoji" src="' + data + '" alt="' + alt + '" title="' + alt + '">'
+      : '<img class="msg-emoji pending" data-emoji="' + did + '" alt="' + alt + '" title="' + alt + '">';
+    idx = end;
+  });
+  html += esc(text.slice(idx));
+  t.innerHTML = html;
+  return t;
+}
+function msgGiftEl(ev, peer){
+  const wrap = document.createElement('div');
+  wrap.className = 'msg-media mm-gift';
+  wrap.dataset.peer = peer;
+  wrap.dataset.msg = ev.id;
+  const icon = document.createElement('span');
+  icon.className = 'mm-icon';
+  icon.textContent = '🎁';
+  const name = document.createElement('span');
+  name.className = 'mm-name';
+  name.textContent = t('tgGift');
+  const sz = document.createElement('span');
+  sz.className = 'mm-size';
+  sz.textContent = 'Telegram';
+  wrap.append(icon, name, sz);
+  return wrap;
+}
 function msgEl(ev){
   const el = document.createElement('div');
   el.className = 'msg' + (ev.out ? ' out' : '') + (ev.plug ? ' plug' : '');
+  const peer = ev.peer_id || TG.active;
+  el.dataset.peer = peer;
+  el.dataset.msg = ev.id;
+  el.addEventListener('contextmenu', e => { e.preventDefault(); tgMsgMenu(ev, el, e); });
   if (ev.plug) el.insertAdjacentHTML('beforeend', '<span class="msg-tag">🤖 plugin</span>');
   else if (!ev.out && ev.sender && TG.active && (TG.dialogMap[TG.active] || {}).type !== 'user') {
     el.insertAdjacentHTML('beforeend', '<span class="msg-sender">' + esc(ev.sender) + '</span>');
   }
-  if (ev.text) {
-    const t = document.createElement('div');
-    t.textContent = ev.text;
-    el.appendChild(t);
+  if (ev.reply_to) {
+    const rt = TG.messages[peer] ? TG.messages[peer].find(m => m.id === ev.reply_to) : null;
+    const rep = document.createElement('div');
+    rep.className = 'msg-reply';
+    rep.textContent = (rt ? (rt.sender || '') + ': ' + (rt.text || tgMediaLabel(rt.media)) : t('tgReplyUnknown')).slice(0, 90);
+    el.appendChild(rep);
   }
-  if (ev.media && ev.media.kind && ev.media.kind !== 'link') {
-    const peer = ev.peer_id || TG.active;
+  if (ev.text) el.appendChild(renderMsgText(ev));
+  const mi = ev.media || {};
+  if (mi.kind && mi.kind !== 'link') {
     const thumb = (TG.thumbs[peer] || {})[ev.id];
-    if (ev.media.kind === 'photo' && thumb) {
+    if ((mi.kind === 'photo' || mi.kind === 'sticker') && thumb) {
       const img = document.createElement('img');
-      img.className = 'msg-photo';
+      img.className = 'msg-photo msg-' + mi.kind;
       img.src = thumb;
       img.dataset.peer = peer;
       img.dataset.msg = ev.id;
+      if (mi.kind === 'sticker') { img.title = mi.emoji || (mi.file || '') ; img.classList.add('msg-sticker'); }
       img.onclick = () => tgDownload(peer, ev.id);
       el.appendChild(img);
+    } else if ((mi.kind === 'gif' || mi.kind === 'video') && thumb) {
+      const w = document.createElement('div');
+      w.className = 'msg-gif';
+      w.dataset.peer = peer;
+      w.dataset.msg = ev.id;
+      const img = document.createElement('img');
+      img.className = 'msg-photo';
+      img.src = thumb;
+      const play = document.createElement('span');
+      play.className = 'mm-play';
+      play.textContent = '▶';
+      w.append(img, play);
+      w.onclick = () => tgDownload(peer, ev.id);
+      el.appendChild(w);
+    } else if (mi.kind === 'gift') {
+      el.appendChild(msgGiftEl(ev, peer));
     } else {
       el.appendChild(mediaEl(ev, peer));
     }
@@ -2225,7 +2368,7 @@ function mediaEl(ev, peer){
     name.textContent = tgMediaLabel(mi);
     const dur = document.createElement('span');
     dur.className = 'mm-size';
-    dur.textContent = mi.size ? fmtBytes(mi.size) : '';
+    dur.textContent = mi.duration ? fmtDur(mi.duration) : (mi.size ? fmtBytes(mi.size) : '');
     wrap.append(play, name, dur);
     return wrap;
   }
@@ -2321,11 +2464,18 @@ function tgAddPluginReply(ev){
   if (screen === 'messenger' && TG.active === peer) renderChat();
 }
 function tgSetThumb(peer, msgId){
+  if (!peer || msgId == null) return;
+  const target = document.querySelector('.msg[data-peer="' + peer + '"][data-msg="' + msgId + '"]');
+  if (!target) return;
+  if (target.querySelector('img[data-peer="' + peer + '"][data-msg="' + msgId + '"]')) return;
+  const msgs = TG.messages[peer];
+  const m = msgs && msgs.find(x => x.id === msgId);
+  if (!m) return;
   const body = $('#chatBody');
-  if (!body || peer !== TG.active) return;
-  const prev = body.scrollTop;
-  renderChat();
-  if (TG.messages[peer] && TG.messages[peer].length) body.scrollTop = body.scrollHeight;
+  const wasAtBottom = body && (body.scrollHeight - body.scrollTop - body.clientHeight < 60);
+  const fresh = msgEl(m);
+  target.replaceWith(fresh);
+  if (body && wasAtBottom) body.scrollTop = body.scrollHeight;
 }
 function renderAvatars(){
   if (TG.avatars['me'] && $('#msgrMeAva')) setAva($('#msgrMeAva'), TG.avatars['me'], $('#msgrMeName').textContent);
@@ -2370,6 +2520,56 @@ function tgPush(ev){
       TG.thumbs[ev.peer_id][ev.msg_id] = ev.data;
       if (screen === 'messenger' && TG.active === ev.peer_id) tgSetThumb(ev.peer_id, ev.msg_id);
       break;
+    case 'emoji':
+      TG.emoji = TG.emoji || {};
+      if (ev.data) Object.keys(ev.data).forEach(k => { TG.emoji[k] = ev.data[k]; });
+      $$('.msg-emoji.pending[data-emoji]').forEach(img => {
+        const d = TG.emoji[img.dataset.emoji];
+        if (d) { img.src = d; img.classList.remove('pending'); }
+      });
+      break;
+    case 'sticker_sets':
+      TG.stickerSets = ev.sets || [];
+      TG.stickerCurrentSet = TG.stickerSets.length ? TG.stickerSets[0].id : null;
+      if (pickerTab === 'sticker') showPickerTab('sticker');
+      break;
+    case 'sticker_items':
+      if (ev.set_id !== undefined) TG.stickerItems[ev.set_id] = ev.items || [];
+      if (pickerTab === 'sticker' && ev.set_id === TG.stickerCurrentSet) showPickerTab('sticker');
+      if (pickerTab === 'emoji' && ev.set_id === TG.emojiCurrentSet) showPickerTab('emoji');
+      break;
+    case 'sticker_preview':
+      TG.pickerPreviews[ev.doc_id] = ev.data;
+      if (pickerTab === 'sticker' || pickerTab === 'emoji') {
+        $$('.picker-cell img[data-doc="' + ev.doc_id + '"]').forEach(img => {
+          img.src = ev.data;
+          img.classList.remove('loading');
+        });
+        $$('.picker-cell[data-doc="' + ev.doc_id + '"]').forEach(c => { c.classList.remove('loading'); });
+      }
+      break;
+    case 'saved_gifs':
+      TG.savedGifs = ev.gifs || [];
+      if (pickerTab === 'gif') showPickerTab('gif');
+      break;
+    case 'gif_search':
+      TG.gifSearchResults = ev.gifs || [];
+      if (pickerTab === 'gif') showPickerTab('gif');
+      break;
+    case 'updated':
+      if (ev.peer_id && TG.messages[ev.peer_id]) {
+        const arr = TG.messages[ev.peer_id];
+        const i = arr.findIndex(m => m.id === ev.id);
+        if (i >= 0) { arr[i] = Object.assign({}, arr[i], ev); if (TG.active === ev.peer_id) renderChat(); }
+      }
+      break;
+    case 'deleted':
+      if (ev.peer_id && TG.messages[ev.peer_id]) {
+        const arr = TG.messages[ev.peer_id];
+        const i = arr.findIndex(m => m.id === ev.id);
+        if (i >= 0) { arr.splice(i, 1); if (TG.active === ev.peer_id) renderChat(); }
+      }
+      break;
     case 'avatar':
       TG.avatars[ev.peer_id] = ev.data; renderAvatars(); break;
     case 'media': tgGotMedia(ev); break;
@@ -2377,7 +2577,7 @@ function tgPush(ev){
     case 'news_error':
       if (screen === 'news') {
         const nb = $('#newsBody');
-        if (nb) nb.innerHTML = '<div class="empty-state">' + esc(t('newsEmpty')) + '</div>';
+        if (nb) nb.innerHTML = '<div class="empty-state">' + esc(t('newsErr')) + '</div>';
       }
       break;
     case 'error': tgHandleError(ev); break;
@@ -2386,6 +2586,13 @@ function tgPush(ev){
 function tgGotMedia(ev){
   TG.downloading = {};
   if (ev.error) { toast(t('tgErrOp') + ' ' + ev.error, 'err'); return; }
+  const openViewer = (kind, name) => {
+    const img = $('#photoViewerImg'), v = $('#photoViewerVideo'), a = $('#photoViewerAudio');
+    img.hidden = true; v.hidden = true; a.hidden = true;
+    $('#pvTitle').textContent = name || '';
+    $('#photoViewer').hidden = false;
+    return { img, v, a };
+  };
   if (ev.data) {
     if (ev.kind === 'voice') {
       const key = ev.peer_id + ':' + ev.msg_id;
@@ -2397,8 +2604,20 @@ function tgGotMedia(ev){
       }
       return;
     }
-    const img = $('#photoViewerImg');
-    if (img) { img.src = ev.data; $('#photoViewer').hidden = false; }
+    const el = openViewer(ev.kind, ev.name);
+    if (ev.kind === 'video' || ev.kind === 'gif') {
+      el.img.hidden = true;
+      el.v.hidden = false;
+      el.v.src = ev.data;
+      el.v.play().catch(() => {});
+    } else if (ev.kind === 'audio') {
+      el.a.hidden = false;
+      el.a.src = ev.data;
+      el.a.play().catch(() => {});
+    } else {
+      el.img.hidden = false;
+      el.img.src = ev.data;
+    }
   } else if (ev.path) {
     toast(t('tgOpenFile'), 'ok');
     if (api()) api().tg_open_media(ev.path).catch(() => {});
@@ -2497,9 +2716,11 @@ function tgSetAvatar(){
   if (confirm(t('tgAvatarPick'))) pick(); else setAvatarB64('');
 }
 async function tgOpen(peer){
-  if (peer === TG.active) return;
   TG.active = peer;
   TG.messages[peer] = null;
+  TG.replyTo = null;
+  TG.editing = null;
+  updateReplyBar();
   renderDialogList();
   renderChat();
   if (api()) api().tg_open(peer).catch(() => {});
@@ -2516,9 +2737,101 @@ async function tgSend(){
   const ta = $('#chatInput');
   const text = ta.value.trim();
   if (!text || !TG.active || !api()) return;
+  if (TG.editing) {
+    const id = TG.editing.id;
+    ta.value = '';
+    autoGrowInput();
+    TG.editing = null;
+    updateReplyBar();
+    toast(t('tgSending'), 'accent');
+    try { await api().tg_edit(TG.active, id, text); } catch(e){ toast(t('tgErrOp') + ' ' + e, 'err'); }
+    return;
+  }
+  const rt = TG.replyTo;
   ta.value = '';
   autoGrowInput();
-  try { await api().tg_send(TG.active, text); } catch(e){ toast(t('tgErrOp') + ' ' + e, 'err'); }
+  TG.replyTo = null;
+  updateReplyBar();
+  try {
+    if (rt) await api().tg_reply(TG.active, rt.id, text);
+    else await api().tg_send(TG.active, text);
+  } catch(e){ toast(t('tgErrOp') + ' ' + e, 'err'); }
+}
+function tgMsgMenu(ev, el, e){
+  const m = document.createElement('div');
+  m.className = 'msg-menu';
+  m.style.left = Math.min(e.clientX, innerWidth - 190) + 'px';
+  m.style.top = Math.min(e.clientY, innerHeight - 150) + 'px';
+  const add = (icon, label, fn) => {
+    const b = document.createElement('button');
+    b.innerHTML = icon + ' <span>' + esc(label) + '</span>';
+    b.onclick = () => { m.remove(); fn(); };
+    m.appendChild(b);
+  };
+  add('📋', t('tgCopy'), () => {
+    const txt = ev.text || (ev.media && ev.media.kind === 'sticker' ? (ev.media.emoji || '') : '');
+    if (txt) { navigator.clipboard && navigator.clipboard.writeText(txt).then(() => toast(t('tgCopied'), 'ok')).catch(() => {}); }
+    else toast(t('tgNoCopy'), 'accent');
+  });
+  if (!ev.plug) {
+    add('↩️', t('tgReply'), () => {
+      TG.replyTo = { id: ev.id, text: (ev.text || tgMediaLabel(ev.media)).slice(0, 60) };
+      TG.editing = null;
+      updateReplyBar();
+      $('#chatInput').focus();
+    });
+  }
+  if (ev.out && !ev.plug) {
+    add('✏️', t('tgEdit'), () => {
+      if (!ev.text) { toast(t('tgEditNoText'), 'accent'); return; }
+      TG.editing = { id: ev.id, text: ev.text };
+      TG.replyTo = null;
+      const ta = $('#chatInput');
+      ta.value = ev.text;
+      autoGrowInput();
+      updateReplyBar();
+      ta.focus();
+    });
+    const db = document.createElement('button');
+    db.innerHTML = '🗑️ <span>' + esc(t('tgDelete')) + '</span>';
+    db.onclick = e => {
+      e.stopPropagation();
+      if (!db.dataset.confirmed) {
+        db.dataset.confirmed = '1';
+        db.innerHTML = '⚠️ <span>' + esc(t('tgDeleteAsk')) + '</span>';
+        setTimeout(() => { if (db.dataset.confirmed) db.dataset.confirmed = ''; }, 3000);
+        return;
+      }
+      db.dataset.confirmed = '';
+      m.remove();
+      api().tg_delete(TG.active, ev.id).catch(err => toast(t('tgErrOp') + ' ' + err, 'err'));
+    };
+    m.appendChild(db);
+  }
+  document.body.appendChild(m);
+  setTimeout(() => {
+    document.addEventListener('mousedown', function off(ev2){
+      if (!m.contains(ev2.target)) { m.remove(); document.removeEventListener('mousedown', off); }
+    });
+  }, 0);
+}
+function updateReplyBar(){
+  const bar = $('#replyBar');
+  if (!bar) return;
+  if (TG.editing) {
+    bar.classList.add('editing');
+    bar.innerHTML = '<b>' + esc(t('tgEditTitle')) + '</b><span>' + esc(TG.editing.text || '') + '</span>' +
+      '<button data-cancel="edit" title="' + esc(t('tgCancel')) + '">✕</button>';
+    bar.hidden = false;
+  } else if (TG.replyTo) {
+    bar.classList.remove('editing');
+    bar.innerHTML = '<b>' + esc(t('tgReplyTitle')) + '</b><span>' + esc(TG.replyTo.text || '') + '</span>' +
+      '<button data-cancel="reply" title="' + esc(t('tgCancel')) + '">✕</button>';
+    bar.hidden = false;
+  } else {
+    bar.hidden = true;
+    bar.innerHTML = '';
+  }
 }
 function tgSendFile(){
   if (!TG.active) return;
@@ -2568,7 +2881,8 @@ function autoGrowInput(){
   ta.style.height = Math.min(140, Math.max(42, ta.scrollHeight)) + 'px';
 }
 
-/* ---------- стикеры / GIF ---------- */
+/* ---------- стикеры / GIF / эмодзи ---------- */
+let pickerTab = 'sticker';
 const STICKER_EMOJI = ['❤️','😀','😂','😍','🥰','😎','🤯','🤗','🖤','🌹','🔥','👍','✨','💀','👾','🎉','😈','👀','🙏','💜','😺','🍕','⚡','🫶','🥺','🫠','😤','🤝','🎮','💎','🚀','🌈'];
 function togglePicker(tab){
   const p = $('#chatPicker');
@@ -2576,34 +2890,147 @@ function togglePicker(tab){
   if (p.hidden) return;
   showPickerTab(tab || 'sticker');
 }
+function pickerApiReq(method, args){
+  if (!api()) return Promise.resolve(null);
+  return api()[method](args).catch(() => null);
+}
 function showPickerTab(tab){
+  pickerTab = tab;
   $$('#chatPicker .picker-tab').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
   const body = $('#pickerBody');
-  if (tab === 'gif') {
-    body.innerHTML =
-      '<div class="gif-row"><input class="input" id="gifUrl" placeholder="https://…gif" autocomplete="off" spellcheck="false">' +
-      '<button class="btn primary small" id="gifSendBtn">➤</button></div>' +
-      '<div class="picker-note">' + esc(t('gifHint')) + '</div>';
-    $('#gifSendBtn').addEventListener('click', gifSend);
-    $('#gifUrl').addEventListener('keydown', e => { if (e.key === 'Enter') gifSend(); });
-  } else {
-    body.innerHTML = '<div class="sticker-grid">' + STICKER_EMOJI.map(e =>
-      '<div class="sticker-cell" data-emoji="' + esc(e) + '">' + e + '</div>').join('') + '</div>';
+  body.scrollTop = 0;
+  if (tab === 'sticker') {
+    body.innerHTML = '';
+    const bar = document.createElement('div');
+    bar.className = 'picker-sets';
+    const sets = TG.stickerSets;
+    if (!sets || !sets.length) {
+      bar.innerHTML = '';
+      body.innerHTML = '<div class="picker-note">' + esc(t('tgLoadingStickers')) + '</div>';
+      pickerApiReq('tg_sticker_sets');
+      return;
+    }
+    sets.forEach(s => {
+      const b = document.createElement('button');
+      b.className = 'picker-set' + (TG.stickerCurrentSet === s.id ? ' on' : '');
+      b.dataset.set = s.id;
+      b.textContent = s.title || s.id;
+      b.onclick = () => { TG.stickerCurrentSet = s.id; showPickerTab('sticker'); };
+      bar.appendChild(b);
+    });
+    body.appendChild(bar);
+    const grid = document.createElement('div');
+    grid.className = 'picker-grid';
+    const items = TG.stickerItems[TG.stickerCurrentSet];
+    if (!items || !items.length) {
+      grid.innerHTML = '<div class="picker-note">' + esc(t('tgLoadingStickers')) + '</div>';
+      pickerApiReq('tg_sticker_items', TG.stickerCurrentSet);
+    } else {
+      items.forEach(it => {
+        const c = document.createElement('div');
+        c.className = 'picker-cell loading';
+        c.dataset.doc = it.doc_id;
+        const img = document.createElement('img');
+        img.dataset.doc = it.doc_id;
+        img.className = 'loading';
+        img.alt = it.emoji || '';
+        c.appendChild(img);
+        c.onclick = () => sendDoc(it.doc_id);
+        grid.appendChild(c);
+        pickerApiReq('tg_sticker_preview', it.doc_id);
+      });
+    }
+    body.appendChild(grid);
+  } else if (tab === 'emoji') {
+    body.innerHTML = '';
+    const sets = (TG.stickerSets || []).filter(s => s.emoji);
+    if (!TG.emojiCurrentSet && sets.length) TG.emojiCurrentSet = sets[0].id;
+    if (sets.length) {
+      const bar = document.createElement('div');
+      bar.className = 'picker-sets';
+      sets.forEach(s => {
+        const b = document.createElement('button');
+        b.className = 'picker-set' + (TG.emojiCurrentSet === s.id ? ' on' : '');
+        b.dataset.set = s.id;
+        b.textContent = s.title || s.id;
+        b.onclick = () => { TG.emojiCurrentSet = s.id; showPickerTab('emoji'); };
+        bar.appendChild(b);
+      });
+      body.appendChild(bar);
+    }
+    const grid = document.createElement('div');
+    grid.className = 'picker-grid';
+    const items = sets.length ? TG.stickerItems[TG.emojiCurrentSet] : null;
+    if (sets.length && (!items || !items.length)) {
+      grid.innerHTML = '<div class="picker-note">' + esc(t('tgLoadingStickers')) + '</div>';
+      pickerApiReq('tg_sticker_items', TG.emojiCurrentSet);
+    } else if (sets.length) {
+      items.forEach(it => {
+        const c = document.createElement('div');
+        c.className = 'picker-cell loading';
+        c.dataset.doc = it.doc_id;
+        const img = document.createElement('img');
+        img.dataset.doc = it.doc_id;
+        img.className = 'loading';
+        img.alt = it.emoji || '';
+        c.appendChild(img);
+        c.onclick = () => sendDoc(it.doc_id);
+        grid.appendChild(c);
+        pickerApiReq('tg_sticker_preview', it.doc_id);
+      });
+    } else {
+      grid.innerHTML = STICKER_EMOJI.map(e => '<div class="picker-cell emoji" data-emoji="' + esc(e) + '">' + e + '</div>').join('');
+      pickerApiReq('tg_sticker_sets');
+    }
+    body.appendChild(grid);
+  } else if (tab === 'gif') {
+    body.innerHTML = '';
+    const search = document.createElement('div');
+    search.className = 'picker-search';
+    search.innerHTML = '<input class="input" id="gifSearch" placeholder="' + esc(t('tgGifSearchHint')) + '" autocomplete="off" spellcheck="false">' +
+      '<button class="btn primary small" id="gifSearchBtn">🔍</button>';
+    body.appendChild(search);
+    const grid = document.createElement('div');
+    grid.className = 'picker-grid';
+    const list = TG.gifSearchResults && TG.gifSearchResults.length ? TG.gifSearchResults : TG.savedGifs;
+    if (!list || !list.length) {
+      grid.innerHTML = '<div class="picker-note">' + esc(t('tgLoadingGifs')) + '</div>';
+      pickerApiReq('tg_saved_gifs');
+    } else {
+      list.forEach(it => {
+        const c = document.createElement('div');
+        c.className = 'picker-cell loading';
+        c.dataset.doc = it.doc_id;
+        const img = document.createElement('img');
+        img.dataset.doc = it.doc_id;
+        img.className = 'loading';
+        c.appendChild(img);
+        c.onclick = () => sendDoc(it.doc_id);
+        grid.appendChild(c);
+        pickerApiReq('tg_sticker_preview', it.doc_id);
+      });
+    }
+    body.appendChild(grid);
+    const gs = $('#gifSearch');
+    if (gs) {
+      gs.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); gifSearch(); } });
+      $('#gifSearchBtn').addEventListener('click', gifSearch);
+    }
   }
+}
+async function gifSearch(){
+  const q = $('#gifSearch').value.trim();
+  if (!q) return;
+  pickerApiReq('tg_gif_search', q);
+}
+async function sendDoc(docId){
+  if (!TG.active || !docId) return;
+  toast(t('tgSending'), 'accent');
+  try { await api().tg_send_doc(TG.active, docId); } catch(e){ toast(t('tgErrOp') + ' ' + e, 'err'); }
 }
 async function stickerSend(emoji){
   if (!TG.active || !api()) return;
   try { await api().tg_send(TG.active, emoji); } catch(e){ toast(t('tgErrOp') + ' ' + e, 'err'); }
-}
-async function gifSend(){
-  const url = $('#gifUrl').value.trim();
-  if (!url || !TG.active || !api()) return;
-  toast(t('tgSending'), 'accent');
-  try {
-    const r = await api().tg_send_url(TG.active, url);
-    if (r && r.error) toast(t('tgErrOp') + ' ' + r.error, 'err');
-  } catch(e){ toast(t('tgErrOp') + ' ' + e, 'err'); }
-  $('#gifUrl').value = '';
 }
 async function openPlugins(){
   $('#pluginModal').hidden = false;
@@ -2668,8 +3095,18 @@ function initMsgrEvents(){
   $('#chatPicker').addEventListener('click', e => {
     const tab = e.target.closest('[data-tab]');
     if (tab) { showPickerTab(tab.dataset.tab); return; }
+    const cell = e.target.closest('[data-doc]');
+    if (cell) { sendDoc(cell.dataset.doc); return; }
     const st = e.target.closest('[data-emoji]');
     if (st) stickerSend(st.dataset.emoji);
+  });
+  $('#replyBar').addEventListener('click', e => {
+    const c = e.target.closest('[data-cancel]');
+    if (!c) return;
+    if (c.dataset.cancel === 'edit') TG.editing = null;
+    else TG.replyTo = null;
+    updateReplyBar();
+    $('#chatInput').focus();
   });
   $('#msgrLogoutBtn').addEventListener('click', tgLogout);
   $('#msgrAvatarBtn').addEventListener('click', tgSetAvatar);
@@ -2682,6 +3119,7 @@ function initMsgrEvents(){
   $('#msgrRefreshBtn').addEventListener('click', () => { if (api()) api().tg_refresh().catch(() => {}); });
   $('#msgrSearch').addEventListener('input', renderDialogList);
   $('#photoViewer').addEventListener('click', () => { $('#photoViewer').hidden = true; });
+  $('#photoViewerClose').addEventListener('click', e => { $('#photoViewer').hidden = true; e.stopPropagation(); });
   $('#pluginListModal').addEventListener('change', e => {
     const cb = e.target;
     if (!cb || !cb.matches('input[type=checkbox]')) return;
@@ -2710,9 +3148,9 @@ async function checkNews(){
   if (S && S.settings.news_off) return;
   try {
     const r = await api().get_news();
-    if (r && r.ok && !r.disabled && r.post_id !== (S && S.settings.last_news_id)) {
+    if (r && r.ok && !r.disabled && r.html && r.post_id !== (S && S.settings.last_news_id)) {
       applyNewsData(r);
-    } else if (!r || !r.ok) {
+    } else if (!r || !r.ok || !r.html) {
       if (api()) api().news_via_tg(NEWS_CHANNEL).catch(() => {});
     }
   } catch(e){
@@ -2726,7 +3164,7 @@ async function renderNews(){
   body.innerHTML = '<div class="empty-state">' + esc(t('tgLoadingChat')) + '</div>';
   try {
     const r = await api().get_news();
-    if (!r || !r.ok) {
+    if (!r || !r.ok || !r.html) {
       if (api()) api().news_via_tg(NEWS_CHANNEL).catch(() => {});
       return;
     }
