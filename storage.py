@@ -356,7 +356,11 @@ def validate_color(value: str) -> str:
 
 
 def save_background(data_b64: str) -> bool:
-    """Сохраняет base64-данные изображения фона в папку данных."""
+    """Сохраняет base64-данные изображения фона в папку данных.
+
+    Фон пережимается в JPEG (~1500px, q78), чтобы в JS-мост не уходили
+    мегабайты (из-за них WebView2 чернел и вешался).
+    """
     import base64
     if not data_b64:
         return False
@@ -367,38 +371,57 @@ def save_background(data_b64: str) -> bool:
         if len(raw) > 5 * 1024 * 1024:
             log("[storage] фон слишком большой (>5 МБ)")
             return False
-        path = os.path.join(data_dir(), "background.png")
-        return _atomic_write_raw(path, raw)
+        out = base64.b64decode(_image_b64(raw, max_side=1600, fmt="jpeg",
+                                          quality=78, skip_small=0))
+        path = os.path.join(data_dir(), "background.jpg")
+        return _atomic_write_raw(path, out)
     except Exception as e:
         log(f"[storage] ошибка сохранения фона: {e}")
         return False
 
 
 def load_background() -> str:
-    """Читает сохранённый фон и возвращает голый base64 (без data: URI)."""
+    """Читает сохранённый фон и возвращает голый base64 (без data: URI).
+
+    Старый файл background.png (с прошлых версий) мигрируется в background.jpg.
+    """
     import base64
-    path = os.path.join(data_dir(), "background.png")
-    try:
-        with open(path, "rb") as f:
-            raw = f.read()
-        if len(raw) > 5 * 1024 * 1024:
-            return ""
-        return base64.b64encode(raw).decode("ascii")
-    except FileNotFoundError:
-        return ""
-    except Exception:
-        return ""
+    for name in ("background.jpg", "background.png"):
+        path = os.path.join(data_dir(), name)
+        try:
+            with open(path, "rb") as f:
+                raw = f.read()
+            if len(raw) > 5 * 1024 * 1024:
+                return ""
+            if name.endswith(".png"):
+                out = base64.b64decode(_image_b64(raw, max_side=1600, fmt="jpeg",
+                                                  quality=78, skip_small=0))
+                try:
+                    _atomic_write_raw(os.path.join(data_dir(), "background.jpg"), out)
+                    os.remove(path)
+                except Exception:
+                    pass
+                return base64.b64encode(out).decode("ascii")
+            return base64.b64encode(raw).decode("ascii")
+        except FileNotFoundError:
+            continue
+        except Exception:
+            continue
+    return ""
 
 
 def remove_background() -> bool:
     """Удаляет сохранённый фон."""
-    path = os.path.join(data_dir(), "background.png")
-    try:
-        if os.path.exists(path):
-            os.remove(path)
-        return True
-    except Exception:
-        return False
+    removed = False
+    for name in ("background.jpg", "background.png"):
+        path = os.path.join(data_dir(), name)
+        try:
+            if os.path.exists(path):
+                os.remove(path)
+                removed = True
+        except Exception:
+            continue
+    return removed
 
 
 def save_font(data_b64: str) -> bool:
@@ -448,7 +471,10 @@ def remove_font() -> bool:
 
 
 def save_ser_avatar(data_b64: str) -> bool:
-    """Сохраняет своё фото для Серийчика (прозрачный PNG)."""
+    """Сохраняет своё фото для Серийчика (прозрачный PNG).
+
+    Фото ужимается до ~512px, чтобы через JS-мост не шли мегабайты.
+    """
     import base64
     if not data_b64:
         return False
@@ -459,8 +485,10 @@ def save_ser_avatar(data_b64: str) -> bool:
         if len(raw) > 10 * 1024 * 1024:
             log("[storage] аватар Серийчика слишком большой (>10 МБ)")
             return False
+        out = base64.b64decode(_image_b64(raw, max_side=512, fmt="png",
+                                          keep_alpha=True, skip_small=0))
         path = os.path.join(data_dir(), "ser_avatar.png")
-        return _atomic_write_raw(path, raw)
+        return _atomic_write_raw(path, out)
     except Exception as e:
         log(f"[storage] ошибка сохранения аватара Серийчика: {e}")
         return False
@@ -475,7 +503,7 @@ def load_ser_avatar() -> str:
             raw = f.read()
         if len(raw) > 10 * 1024 * 1024:
             return ""
-        return base64.b64encode(raw).decode("ascii")
+        return _image_b64(raw, max_side=512, fmt="png", keep_alpha=True)
     except FileNotFoundError:
         return ""
     except Exception:
@@ -541,6 +569,66 @@ def _resource_b64(rel: str) -> str:
     return ""
 
 
+def _read_resource_raw(rel: str):
+    """Читает байты файла из ui/ ресурсов (исходники или PyInstaller), или None."""
+    import sys as _sys
+    candidates = []
+    base = getattr(_sys, "_MEIPASS", None)
+    if base:
+        candidates.append(os.path.join(base, "ui", rel))
+    candidates.append(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                   "ui", rel))
+    for path in candidates:
+        try:
+            if not os.path.exists(path):
+                continue
+            with open(path, "rb") as f:
+                raw = f.read()
+            if len(raw) > 10 * 1024 * 1024:
+                return None
+            return raw
+        except Exception:
+            continue
+    return None
+
+
+def _image_b64(raw: bytes, max_side: int = 1600, fmt: str = "jpeg",
+               quality: int = 78, keep_alpha: bool = False,
+               skip_small: int = 350 * 1024) -> str:
+    """Пережимает картинку PIL'ом перед отправкой в JS-мост.
+
+    Огромные base64-строки (2–3+ МБ) через pywebview-мост кладут рендерер
+    WebView2 — чёрный экран и мёртвый UI. Поэтому все картинки режем до
+    скромных размеров (JPEG для непрозрачных фото, PNG для прозрачных аватаров).
+    Если PIL недоступен или файл не картинка — возвращаем base64 оригинала,
+    чтобы ничего не сломать.
+    """
+    import base64
+    out = raw
+    try:
+        if skip_small and len(raw) <= skip_small:
+            return base64.b64encode(raw).decode("ascii")
+        from PIL import Image
+        import io
+        im = Image.open(io.BytesIO(raw))
+        im.load()
+        if keep_alpha:
+            im = im.convert("RGBA")
+        else:
+            im = im.convert("RGB")
+        if max_side and (im.width > max_side or im.height > max_side):
+            im.thumbnail((max_side, max_side), Image.LANCZOS)
+        buf = io.BytesIO()
+        if fmt == "jpeg":
+            im.save(buf, "JPEG", quality=quality)
+        else:
+            im.save(buf, "PNG", optimize=True)
+        out = buf.getvalue()
+    except Exception:
+        out = raw
+    return base64.b64encode(out).decode("ascii")
+
+
 def ser_level_avatar(level: int) -> str:
     """Фото Серийчика по уровню: 1–50 → 1.png, 51–100 → 2.png, 101–150 → 3.png, 151+ → 4.png."""
     try:
@@ -555,7 +643,10 @@ def ser_level_avatar(level: int) -> str:
         idx = 3
     else:
         idx = 4
-    return _resource_b64("ser_kitagawa_%d.png" % idx)
+    raw = _read_resource_raw("ser_kitagawa_%d.png" % idx)
+    if not raw:
+        return ""
+    return _image_b64(raw, max_side=512, fmt="png", keep_alpha=True)
 
 
 SCENE_FILES = {
@@ -566,11 +657,18 @@ SCENE_FILES = {
 
 
 def scene_background(scene_id: str) -> str:
-    """Фоновое изображение сцены (звёзды/сакура/улица) из ресурсов приложения."""
+    """Фоновое изображение сцены (звёзды/сакура/улица) из ресурсов приложения.
+
+    Ресурсы — PNG по 2.3–2.5 МБ; через JS-мост они клали WebView2. Отдаём JPEG
+    (~150–250 КБ), картинка не теряет вида на полноэкранном фоне.
+    """
     rel = SCENE_FILES.get(str(scene_id or ""))
     if not rel:
         return ""
-    return _resource_b64(rel)
+    raw = _read_resource_raw(rel)
+    if not raw:
+        return ""
+    return _image_b64(raw, max_side=1440, fmt="jpeg", quality=70, skip_small=0)
 
 
 def _atomic_write_raw(path: str, data: bytes) -> bool:

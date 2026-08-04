@@ -1981,19 +1981,39 @@ async function saveSettingsForm(){
 async function uploadBg(){
   const f = $('#bgInput').files[0];
   if (!f) return;
-  const rd = new FileReader();
-  rd.onload = async () => {
-    const b64 = String(rd.result).split(',', 2)[1];
-    try {
-      const r = await api().upload_background(b64);
-      if (r && r.ok) {
-        await api().save_settings({bg_scene: ''});
-        if (S) S.settings.bg_scene = '';
-        applyState(r); applyBg('data:image/png;base64,' + b64); applyScene(''); renderAll(); toast(t('savedToast'), 'ok');
-      }
-    } catch(e){ toast(t('savedErr') + ' ' + e, 'err'); }
-  };
-  rd.readAsDataURL(f);
+  try {
+    const img = await new Promise((res, rej) => {
+      const i = new Image();
+      i.onload = () => res(i);
+      i.onerror = () => rej(new Error('bad image'));
+      i.src = URL.createObjectURL(f);
+    });
+    const MAX = 1600;
+    let w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
+    if (!w || !h) throw new Error('bad image');
+    if (w > MAX || h > MAX) {
+      if (w >= h) { h = Math.round(h * MAX / w); w = MAX; }
+      else { w = Math.round(w * MAX / h); h = MAX; }
+    }
+    const c = document.createElement('canvas');
+    c.width = w; c.height = h;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#0F0F10';
+    ctx.fillRect(0, 0, w, h);
+    ctx.drawImage(img, 0, 0, w, h);
+    URL.revokeObjectURL(img.src);
+    const b64 = c.toDataURL('image/jpeg', 0.82).split(',', 2)[1];
+    const r = await api().upload_background(b64);
+    if (r && r.ok) {
+      await api().save_settings({bg_scene: ''});
+      if (S) S.settings.bg_scene = '';
+      applyState(r);
+      const b = await api().get_background();
+      if (b && b.data) applyBg('data:' + (b.mime || 'image/jpeg') + ';base64,' + b.data, false);
+      else applyBg(null);
+      applyScene(''); renderAll(); toast(t('savedToast'), 'ok');
+    }
+  } catch(e){ toast(t('savedErr') + ' ' + e, 'err'); }
 }
 async function clearBg(){
   try {
@@ -2064,7 +2084,7 @@ async function pickScene(id){
     applyScene('');
     await api().remove_background();
     const r = await api().get_scene_background(id);
-    if (r && r.data) applyBg('data:image/png;base64,' + r.data, true);
+    if (r && r.data) applyBg('data:' + (r.mime || 'image/png') + ';base64,' + r.data, true);
     else applyBg(null);
     renderSceneGallery();
     toast(t('savedToast'), 'ok');
@@ -3662,10 +3682,10 @@ async function init(){
   renderAll();
   if (S.settings.snow_enabled !== false) startParticles();
   if (S.background_image === 'custom' && api()) {
-    try { const r = await api().get_background(); if (r && r.data) applyBg('data:image/png;base64,' + r.data); } catch(e){}
+    try { const r = await api().get_background(); if (r && r.data) applyBg('data:' + (r.mime || 'image/png') + ';base64,' + r.data); } catch(e){}
   }
   if (S.settings.bg_scene && api()) {
-    try { const r = await api().get_scene_background(S.settings.bg_scene); if (r && r.data) applyBg('data:image/png;base64,' + r.data, true); } catch(e){}
+    try { const r = await api().get_scene_background(S.settings.bg_scene); if (r && r.data) applyBg('data:' + (r.mime || 'image/png') + ';base64,' + r.data, true); } catch(e){}
   }
   if (S.settings.has_custom_font && api()) {
     try { const r = await api().get_font(); if (r && r.data) applyCustomFont(r.data); } catch(e){}

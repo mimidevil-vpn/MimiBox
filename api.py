@@ -989,12 +989,20 @@ class Api:
         return {"ok": ok, "state": self._state()}
 
     def get_background(self):
-        """Возвращает base64-данные фона для отображения в UI."""
-        return {"data": storage.load_background()}
+        """Возвращает base64-данные фона для отображения в UI.
+
+        Фон хранится/отдаётся как JPEG (см. storage.save_background) — большой
+        PNG в base64 клал рендерер WebView2 (чёрный экран).
+        """
+        return {"data": storage.load_background(), "mime": "image/jpeg"}
 
     def get_scene_background(self, scene_id):
-        """Возвращает base64-данные встроенного фона сцены (stars/sakura/street)."""
-        return {"data": storage.scene_background(scene_id)}
+        """Возвращает base64-данные встроенного фона сцены (stars/sakura/street).
+
+        Сцена отдаётся JPEG'ом (~150–250 КБ): полноразмерные PNG-ресурсы
+        через JS-мост вешали WebView2.
+        """
+        return {"data": storage.scene_background(scene_id), "mime": "image/jpeg"}
 
     def remove_background(self):
         """Удаляет пользовательский фон."""
