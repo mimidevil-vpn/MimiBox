@@ -73,8 +73,11 @@ body.theme-light[data-scene="stars"] .bg-stars{opacity:.05}
 .scene-item.font-item .si-prev{font-size:15px;line-height:1.15;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700}
 .scene-item.font-item .si-name{font-size:9px}
 
-#wallpaper{position:fixed;inset:0;z-index:1;background-size:cover;background-position:center;opacity:.2;filter:blur(1px);display:none}
+#wallpaper{position:fixed;inset:0;z-index:1;background-size:cover;background-position:center;opacity:.28;filter:blur(1px);display:none}
 #wallpaper.on{display:block}
+body.bg-scene #wallpaper{opacity:.5}
+body.has-bg .glass{background:rgba(255,255,255,.055);border-color:rgba(255,255,255,.105)}
+body.has-bg.theme-light .glass{background:rgba(255,255,255,.8)}
 
 #particles{position:fixed;inset:0;z-index:2;pointer-events:none}
 
@@ -150,6 +153,7 @@ h2.screen-title{font-size:21px;font-weight:800;letter-spacing:.01em;margin-botto
   transition:transform .2s var(--ease),box-shadow .2s var(--ease),border-color .2s var(--ease);
 }
 .glass.hover:hover{transform:translateY(-2px) scale(1.012);border-color:rgba(225,139,255,.22);box-shadow:0 8px 34px rgba(0,0,0,.35),0 0 22px var(--glow-lav)}
+.beta-badge{display:inline-flex;align-items:center;padding:1px 6px;border-radius:999px;font-size:9px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#FF7ACD;background:rgba(255,122,205,.12);border:1px solid rgba(255,122,205,.3);line-height:1.4;vertical-align:middle;flex:none}
 .btn{
   display:inline-flex;align-items:center;gap:8px;justify-content:center;
   padding:10px 18px;border-radius:999px;font-weight:800;font-size:12px;letter-spacing:.08em;
@@ -223,9 +227,8 @@ select.input{appearance:none;background-image:linear-gradient(45deg,transparent 
 .connect-btn.on .cb-icon{text-shadow:0 0 18px rgba(255,255,255,.6)}
 .connect-btn.on:not(.busy){animation:btn-pulse 2.6s var(--ease) infinite}
 @keyframes btn-pulse{0%,100%{box-shadow:0 0 64px rgba(255,122,205,.45),0 18px 46px rgba(0,0,0,.45);transform:scale(1)}50%{box-shadow:0 0 92px rgba(255,122,205,.72),0 18px 46px rgba(0,0,0,.45);transform:scale(1.035)}}
-.connect-btn.busy{border-style:dashed;animation:spin-border 1.6s linear infinite}
-.connect-btn.busy::after{content:"";position:absolute;inset:6px;border-radius:50%;border:1px dashed rgba(255,122,205,.5);animation:spin-border 1.6s linear infinite reverse}
-@keyframes spin-border{to{transform:rotate(360deg)}}
+.connect-btn.busy{border-style:dashed;animation:none}
+.connect-btn.busy::after{content:"";position:absolute;inset:6px;border-radius:50%;border:1px dashed rgba(255,122,205,.5);animation:none}
 .connect-zone.ringing .connect-btn{transform:scale(1.02)}
 
 .home-metrics{width:100%;display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
@@ -361,6 +364,17 @@ select.input{appearance:none;background-image:linear-gradient(45deg,transparent 
 #newsBanner .nb-date{font-size:11px;color:var(--dim)}
 #newsBanner .nb-body{flex:1;color:var(--text);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #newsBanner .nb-x{flex:none}
+
+/* ---------- игровой режим: полноэкранное уведомление ---------- */
+#gameOverlay{position:fixed;inset:0;z-index:200;display:grid;place-items:center;background:rgba(8,8,10,.62);backdrop-filter:blur(6px)}
+#gameOverlay[hidden]{display:none}
+.game-card{max-width:430px;width:calc(100% - 48px);padding:30px 28px;text-align:center}
+.game-icon{font-size:42px;margin-bottom:10px}
+.game-title{font-size:20px;font-weight:800;margin-bottom:6px}
+.game-desc{color:var(--dim);font-size:13px;margin-bottom:14px}
+.game-list{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-bottom:20px}
+.game-chip{padding:4px 11px;border-radius:999px;background:rgba(255,122,205,.12);border:1px solid rgba(255,122,205,.32);color:#FF7ACD;font-size:11px;font-weight:700}
+.game-actions{display:flex;gap:10px;justify-content:center}
 
 /* ---------- news screen ---------- */
 .news-screen{max-width:720px;margin:0 auto;padding-top:3vh}
@@ -801,7 +815,7 @@ audio.msg-voice{max-width:260px;height:40px;margin-top:4px;border-radius:14px;ba
       </button>
       <button class="nav-item" data-screen="messenger">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
-        <span data-i18n="navMessenger">Мессенджер</span>
+        <span data-i18n="navMessenger">Мессенджер</span><em class="beta-badge">beta</em>
       </button>
       <button class="nav-item" data-screen="news">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h10M7 12h10M7 16h6"/></svg>
@@ -1073,6 +1087,17 @@ audio.msg-voice{max-width:260px;height:40px;margin-top:4px;border-radius:14px;ba
                   <div><div class="set-label" data-i18n="newsOff">Уведомления о новостях</div></div>
                   <label class="switch"><input type="checkbox" id="setNewsOff"><span class="track"></span></label>
                 </div>
+                <div class="set-row">
+                  <div><div class="set-label" data-i18n="autostart">Автозапуск при входе в Windows</div></div>
+                  <label class="switch"><input type="checkbox" id="setAutostart"><span class="track"></span></label>
+                </div>
+                <div class="set-row">
+                  <div>
+                    <div class="set-label" data-i18n="gameMode">Игровой режим</div>
+                    <div class="set-hint" data-i18n="gameModeHint">Заморозка фоновых приложений ради FPS</div>
+                  </div>
+                  <label class="switch"><input type="checkbox" id="setGame"><span class="track"></span></label>
+                </div>
               </div>
             </div>
           </div>
@@ -1192,7 +1217,7 @@ audio.msg-voice{max-width:260px;height:40px;margin-top:4px;border-radius:14px;ba
             </div>
 
             <div class="glass msgr-plugins-card">
-              <div class="mc-label" data-i18n="tgPlugins">Плагины</div>
+              <div class="mc-label" data-i18n="tgPlugins">Плагины<em class="beta-badge">beta</em></div>
               <div class="plugins-note" data-i18n="tgPluginsHint">Как в ExtraGram: положи .py в папку plugins — команды и обработчики заработают.</div>
               <div id="pluginListSmall"></div>
               <div class="msgr-login-actions">
@@ -1215,7 +1240,7 @@ audio.msg-voice{max-width:260px;height:40px;margin-top:4px;border-radius:14px;ba
                   <button class="btn ghost small" id="msgrAvatarBtn" data-i18n="tgSetAvatar" title="Аватар MimiBox">🖼</button>
                 </div>
                 <div class="msgr-dialogs-actions">
-                  <button class="btn ghost small" id="msgrPluginsBtn" data-i18n="tgPlugins">Плагины</button>
+                  <button class="btn ghost small" id="msgrPluginsBtn" data-i18n="tgPlugins">Плагины<em class="beta-badge">beta</em></button>
                   <button class="btn ghost small" id="msgrRefreshBtn" data-i18n="tgRefresh">⟳</button>
                 </div>
                 <input class="input" id="msgrSearch" placeholder="Поиск…" autocomplete="off" spellcheck="false">
@@ -1311,12 +1336,25 @@ audio.msg-voice{max-width:260px;height:40px;margin-top:4px;border-radius:14px;ba
   <button class="btn ghost small nb-x" id="nbClose">✕</button>
 </div>
 
+<div id="gameOverlay" hidden>
+  <div class="glass game-card">
+    <div class="game-icon">🎮</div>
+    <h2 class="game-title" id="gameOverlayTitle" data-i18n="gameOverlayTitle">Игровой режим</h2>
+    <p class="game-desc" id="gameOverlayDesc" data-i18n="gameOverlayDesc">Фоновые приложения заморожены:</p>
+    <div class="game-list" id="gameOverlayList"></div>
+    <div class="game-actions">
+      <button class="btn ghost small" id="gameDismiss" data-i18n="gameOverlayOk">Понятно</button>
+      <button class="btn primary" id="gameOffBtn" data-i18n="gameOverlayOff">Выключить игровой режим</button>
+    </div>
+  </div>
+</div>
+
 <div id="toasts"></div>
 
 <div class="msgr-modal" id="pluginModal" hidden>
   <div class="glass msgr-modal-card">
     <div class="msgr-modal-head">
-      <div class="mc-label" data-i18n="tgPlugins">Плагины</div>
+      <div class="mc-label" data-i18n="tgPlugins">Плагины<em class="beta-badge">beta</em></div>
       <button class="btn ghost small" id="pluginModalClose">✕</button>
     </div>
     <div class="msgr-modal-body" id="pluginListModal"></div>
@@ -1370,13 +1408,16 @@ const I18N = {
     theme:'Тема', themeAuto:'Авто', themeDark:'Тёмная', themeLight:'Светлая', lang:'Язык',
     wallpaper:'Фоновое изображение', wallpaperHint:'Тёмная картинка — за стеклом панелей',
     wallpaperUpload:'Загрузить', wallpaperRemove:'Убрать', fontRemove:'Сбросить', particles:'Частицы на фоне',
-    bgGallery:'Сцены', bgGalleryHint:'5 встроенных сцен для фона',
+    bgGallery:'Сцены', bgGalleryHint:'3 встроенных фона из галереи',
     fontGallery:'Стиль шрифта', fontGalleryHint:'5 встроенных стилей + свой TTF/OTF',
     bgSceneroof:'Крыши', bgScenearch:'Арка', bgScenestreet:'Улица', bgScenesakura:'Сакура', bgScenestars:'Звёзды',
     fontStylemanrope:'Manrope', fontStylesegui:'Segoe UI', fontStyleserif:'С засечками', fontStylemono:'Моно', fontStylehand:'Ручка',
     socksPort:'SOCKS-порт', httpPort:'HTTP-порт', tunDns:'DNS туннеля', xrayPath:'Путь к xray.exe',
     highPriority:'Высокий приоритет', minimizeToTray:'Сворачивать в трей', startMinimized:'Запуск свёрнутым',
     newsOff:'Уведомления о новостях', resetTutorial:'Обучение', showAgain:'Показать заново',
+    autostart:'Автозапуск при входе в Windows',
+    gameMode:'Игровой режим', gameModeHint:'Заморозка фоновых приложений ради FPS',
+    gameOverlayTitle:'Игровой режим', gameOverlayDesc:'Фоновые приложения заморожены:', gameOverlayOk:'Понятно', gameOverlayOff:'Выключить игровой режим',
     dataFolder:'Папка с данными', openFolder:'Открыть', buildInfo:'Сборка',
     saveBtn:'Сохранить настройки',
     profileDesc:'Подписка, Telegram, детали.',
@@ -1466,13 +1507,16 @@ const I18N = {
     theme:'Theme', themeAuto:'Auto', themeDark:'Dark', themeLight:'Light', lang:'Language',
     wallpaper:'Background image', wallpaperHint:'Dark image behind the glass panels',
     wallpaperUpload:'Upload', wallpaperRemove:'Remove', fontRemove:'Reset', particles:'Background particles',
-    bgGallery:'Scenes', bgGalleryHint:'5 built-in background scenes',
+    bgGallery:'Scenes', bgGalleryHint:'3 built-in backgrounds from the gallery',
     fontGallery:'Font style', fontGalleryHint:'5 built-in styles + custom TTF/OTF',
     bgSceneroof:'Rooftop', bgScenearch:'Arch', bgScenestreet:'Street', bgScenesakura:'Sakura', bgScenestars:'Stars',
     fontStylemanrope:'Manrope', fontStylesegui:'Segoe UI', fontStyleserif:'Serif', fontStylemono:'Mono', fontStylehand:'Hand',
     socksPort:'SOCKS port', httpPort:'HTTP port', tunDns:'Tunnel DNS', xrayPath:'xray.exe path',
     highPriority:'High priority', minimizeToTray:'Minimize to tray', startMinimized:'Start minimized',
     newsOff:'News notifications', resetTutorial:'Tutorial', showAgain:'Show again',
+    autostart:'Launch on Windows startup',
+    gameMode:'Game mode', gameModeHint:'Freeze background apps for better FPS',
+    gameOverlayTitle:'Game mode', gameOverlayDesc:'Background apps are frozen:', gameOverlayOk:'Got it', gameOverlayOff:'Turn off game mode',
     dataFolder:'Data folder', openFolder:'Open', buildInfo:'Build',
     saveBtn:'Save settings',
     profileDesc:'Subscription, Telegram, details.',
@@ -1703,6 +1747,8 @@ function renderSettings(){
   $('#setStartMin').checked = !!st.start_minimized;
   $('#setHighPri').checked = !!st.high_priority;
   $('#setNewsOff').checked = !!st.news_off;
+  $('#setAutostart').checked = !!st.autostart;
+  $('#setGame').checked = !!st.game_mode;
   $('#setSocks').value = st.socks_port != null ? st.socks_port : 10808;
   $('#setHttp').value = st.http_port != null ? st.http_port : 10809;
   $('#setTunDns').value = st.tun_dns || '';
@@ -1955,19 +2001,25 @@ async function clearBg(){
     if (r) { await api().save_settings({bg_scene: ''}); if (S) S.settings.bg_scene = ''; applyState(r); applyBg(null); applyScene(''); renderAll(); }
   } catch(e){}
 }
-function applyBg(dataUrl){
+function applyBg(dataUrl, isScene){
   const w = $('#wallpaper');
-  if (dataUrl) { w.style.backgroundImage = 'url(' + dataUrl + ')'; w.classList.add('on'); }
-  else { w.style.backgroundImage = ''; w.classList.remove('on'); }
+  if (dataUrl) {
+    w.style.backgroundImage = 'url(' + dataUrl + ')';
+    w.classList.add('on');
+    document.body.classList.toggle('bg-scene', !!isScene);
+    document.body.classList.add('has-bg');
+  } else {
+    w.style.backgroundImage = '';
+    w.classList.remove('on');
+    document.body.classList.remove('has-bg', 'bg-scene');
+  }
 }
 
 /* ---------- сцены и стили шрифтов ---------- */
 const BG_SCENES = [
-  {id:'rooftop', icon:'🏙', name:'roof'},
-  {id:'arch', icon:'⛩', name:'arch'},
-  {id:'street', icon:'🌃', name:'street'},
+  {id:'stars', icon:'🌌', name:'stars'},
   {id:'sakura', icon:'🌸', name:'sakura'},
-  {id:'stars', icon:'🌙', name:'stars'}
+  {id:'street', icon:'🌃', name:'street'}
 ];
 const FONT_STYLES = [
   {id:'manrope', name:'manrope', css:"'Manrope',system-ui,sans-serif"},
@@ -2009,9 +2061,11 @@ async function pickScene(id){
   try {
     await api().save_settings({bg_scene: id});
     if (S) S.settings.bg_scene = id;
-    applyScene(id);
-    applyBg(null);
+    applyScene('');
     await api().remove_background();
+    const r = await api().get_scene_background(id);
+    if (r && r.data) applyBg('data:image/png;base64,' + r.data, true);
+    else applyBg(null);
     renderSceneGallery();
     toast(t('savedToast'), 'ok');
   } catch(e){ toast(t('savedErr') + ' ' + e, 'err'); }
@@ -3131,7 +3185,25 @@ function initMsgrEvents(){
 
 /* ============ news ============ */
 let newsData = null;
+let newsFallbackBusy = false;
 const NEWS_CHANNEL = 'mackkill';
+function renderNewsFromData(){
+  const body = $('#newsBody');
+  if (!body || !newsData) return;
+  const r = newsData;
+  $('#newsDate').textContent = r.date || '';
+  if (r.html) {
+    const holder = document.createElement('div');
+    holder.innerHTML = r.html;
+    const txt = (holder.textContent || '').replace(/\s+/g, ' ').trim();
+    body.innerHTML = '<div class="news-body-rich">' + r.html + '</div>';
+    if (!r.html.replace(/<[^>]*>/g, '').trim()) body.innerHTML = '<div class="empty-state">' + esc(txt) + '</div>';
+  } else {
+    body.innerHTML = '<div class="empty-state">' + esc(t('newsEmpty')) + '</div>';
+  }
+  const read = $('#newsReadBtn');
+  if (read) read.textContent = t('newsRead') + (r.post_id === (S && S.settings.last_news_id) ? ' ✓' : '');
+}
 function applyNewsData(r){
   if (!r || !r.html) return;
   newsData = r;
@@ -3141,7 +3213,14 @@ function applyNewsData(r){
   $('#nbDate').textContent = r.date || '';
   $('#nbBody').textContent = (holder.textContent || '').replace(/\s+/g, ' ').trim();
   $('#newsBanner').classList.add('show');
-  if (screen === 'news') renderNews();
+  if (screen === 'news') renderNewsFromData();
+}
+function newsFallback(){
+  if (!api() || newsFallbackBusy) return;
+  newsFallbackBusy = true;
+  api().news_via_tg(NEWS_CHANNEL)
+    .then(() => { newsFallbackBusy = false; })
+    .catch(() => { newsFallbackBusy = false; });
 }
 async function checkNews(){
   if (!api()) return;
@@ -3151,37 +3230,31 @@ async function checkNews(){
     if (r && r.ok && !r.disabled && r.html && r.post_id !== (S && S.settings.last_news_id)) {
       applyNewsData(r);
     } else if (!r || !r.ok || !r.html) {
-      if (api()) api().news_via_tg(NEWS_CHANNEL).catch(() => {});
+      newsFallback();
     }
   } catch(e){
-    if (api()) api().news_via_tg(NEWS_CHANNEL).catch(() => {});
+    newsFallback();
   }
 }
 async function renderNews(){
   const body = $('#newsBody');
   if (!body) return;
   if (!api()) return;
+  if (newsData && newsData.html) { renderNewsFromData(); return; }
   body.innerHTML = '<div class="empty-state">' + esc(t('tgLoadingChat')) + '</div>';
   try {
     const r = await api().get_news();
     if (!r || !r.ok || !r.html) {
-      if (api()) api().news_via_tg(NEWS_CHANNEL).catch(() => {});
+      newsFallback();
+      if (newsData && newsData.html) renderNewsFromData();
       return;
     }
     newsData = r;
-    $('#newsDate').textContent = r.date || '';
-    if (r.html) {
-      const holder = document.createElement('div');
-      holder.innerHTML = r.html;
-      const txt = (holder.textContent || '').replace(/\s+/g, ' ').trim();
-      body.innerHTML = '<div class="news-body-rich">' + r.html + '</div>';
-      if (!r.html.replace(/<[^>]*>/g, '').trim()) body.innerHTML = '<div class="empty-state">' + esc(txt) + '</div>';
-    } else {
-      body.innerHTML = '<div class="empty-state">' + esc(t('newsEmpty')) + '</div>';
-    }
-    const read = $('#newsReadBtn');
-    if (read) read.textContent = t('newsRead') + (r.post_id === (S && S.settings.last_news_id) ? ' ✓' : '');
-  } catch(e){ body.innerHTML = '<div class="empty-state">' + esc(String(e)) + '</div>'; }
+    renderNewsFromData();
+  } catch(e){
+    if (newsData && newsData.html) renderNewsFromData();
+    else body.innerHTML = '<div class="empty-state">' + esc(String(e)) + '</div>';
+  }
 }
 async function closeNews(){
   $('#newsBanner').classList.remove('show');
@@ -3206,8 +3279,8 @@ async function renderSer(){
   if (!api()) { root.innerHTML = ''; return; }
   let st = S;
   try { const r = await api().get_state(); if (r) { applyState(r); st = r; } } catch(e){}
-  try { const a = await api().ser_get_avatar(); serAvatar = (a && a.data) ? a.data : ''; serCustom = !!(a && a.custom); } catch(e){ serAvatar = ''; serCustom = false; }
   const ser = (st && st.ser) || {};
+  try { const a = await api().ser_get_avatar(ser.level || 1); serAvatar = (a && a.data) ? a.data : ''; serCustom = !!(a && a.custom); } catch(e){ serAvatar = ''; serCustom = false; }
   const pct = ser.xp_next ? Math.min(100, Math.round((ser.xp || 0) * 100 / ser.xp_next)) : 0;
   const hunger = ser.hunger != null ? ser.hunger : 100;
   const mood = ser.mood || 'neutral';
@@ -3222,7 +3295,7 @@ async function renderSer(){
           '<div class="ser-level-badge">Lv ' + (ser.level || 1) + '</div>' +
         '</div>' +
         '<div class="ser-info">' +
-          '<div class="ser-name-row"><input class="input ser-name-input" id="serName" maxlength="24" value="' + esc(ser.name || 'Серийчик') + '"><button class="btn ghost small" id="serNameBtn">OK</button></div>' +
+          '<div class="ser-name-row"><input class="input ser-name-input" id="serName" maxlength="24" value="' + esc(ser.name || 'Kitagawa') + '"><button class="btn ghost small" id="serNameBtn">OK</button></div>' +
           '<div class="ser-mood">' + t(moodKey) + (hungryTxt ? ' · ' + hungryTxt : '') + '</div>' +
           '<div class="ser-bar"><div class="ser-bar-label"><span>' + t('serXp') + '</span><span>' + (ser.xp || 0) + ' / ' + (ser.xp_next || 100) + '</span></div><div class="ser-bar-track"><div class="ser-bar-fill xp" style="width:' + pct + '%"></div></div></div>' +
           '<div class="ser-bar"><div class="ser-bar-label"><span>' + t('serFull') + '</span><span>' + hunger + '%</span></div><div class="ser-bar-track"><div class="ser-bar-fill hunger' + (hunger <= 25 ? ' warn' : '') + '" style="width:' + hunger + '%"></div></div></div>' +
@@ -3417,6 +3490,15 @@ window.__pushLog = (line) => {
   else { logBuf += line + '\n'; if (logBuf.length > 20000) logBuf = logBuf.slice(-20000); }
 };
 window.__pushHint = (text) => { if (text) toast(text, 'warn'); };
+window.__pushGame = (list) => {
+  const ov = $('#gameOverlay');
+  if (!ov) return;
+  list = Array.isArray(list) ? list : [];
+  if (!list.length) { ov.hidden = true; return; }
+  const chips = $('#gameOverlayList');
+  if (chips) chips.innerHTML = list.map(l => '<span class="game-chip">' + esc(l) + '</span>').join('');
+  ov.hidden = false;
+};
 window.__tgPush = (ev) => tgPush(ev);
 window.__pluginPush = (action, data) => {
   if (action && typeof action === 'object' && action.type) { tgPush(action); return; }
@@ -3485,6 +3567,8 @@ bindToggle('#setTray', 'minimize_to_tray');
 bindToggle('#setStartMin', 'start_minimized');
 bindToggle('#setHighPri', 'high_priority');
 bindToggle('#setNewsOff', 'news_off');
+bindToggle('#setAutostart', 'autostart');
+bindToggle('#setGame', 'game_mode');
 
 $('#saveSettingsBtn').addEventListener('click', saveSettingsForm);
 
@@ -3521,6 +3605,12 @@ $('#nbClose').addEventListener('click', closeNews);
 $('#newsRefreshBtn').addEventListener('click', renderNews);
 $('#newsOpenBtn').addEventListener('click', () => { const a = document.createElement('a'); a.dataset.ext = 'https://t.me/' + NEWS_CHANNEL; openExt(a); });
 $('#newsReadBtn').addEventListener('click', async () => { if (!api() || !newsData) return; try { await api().save_settings({last_news_id: newsData.post_id}); toast(t('savedToast'), 'ok'); renderNews(); } catch(e){} });
+$('#gameDismiss').addEventListener('click', () => { const ov = $('#gameOverlay'); if (ov) ov.hidden = true; });
+$('#gameOffBtn').addEventListener('click', async () => {
+  const ov = $('#gameOverlay'); if (ov) ov.hidden = true;
+  if (S) S.settings.game_mode = false;
+  await saveNow({game_mode: false});
+});
 
 document.addEventListener('click', e => {
   const ext = e.target.closest('[data-ext]');
@@ -3544,6 +3634,7 @@ const DEMO = {
     theme:'dark', lang:'ru', system_proxy:true, tun_mode:false, route_mode:'global',
     socks_port:10808, http_port:10809, tun_dns:'1.1.1.1', xray_path:'', minimize_to_tray:true,
     start_minimized:false, high_priority:false, news_off:false, snow_enabled:true,
+    autostart:false, game_mode:false, bg_scene:'',
     direct_sites:[], block_sites:[], tg_username:'', tg_name:'', tg_avatar:'', rating:0,
     subscription_url:'', last_news_id:''
   },
@@ -3565,13 +3656,16 @@ async function init(){
     }
   } catch(e) { S = JSON.parse(JSON.stringify(DEMO)); }
   applyTheme();
-  applyScene(S.settings.bg_scene || '');
+  applyScene('');
   applyFontStyle(S.settings.font_style || (S.settings.has_custom_font ? 'custom' : 'manrope'));
   applyI18n();
   renderAll();
   if (S.settings.snow_enabled !== false) startParticles();
   if (S.background_image === 'custom' && api()) {
     try { const r = await api().get_background(); if (r && r.data) applyBg('data:image/png;base64,' + r.data); } catch(e){}
+  }
+  if (S.settings.bg_scene && api()) {
+    try { const r = await api().get_scene_background(S.settings.bg_scene); if (r && r.data) applyBg('data:image/png;base64,' + r.data, true); } catch(e){}
   }
   if (S.settings.has_custom_font && api()) {
     try { const r = await api().get_font(); if (r && r.data) applyCustomFont(r.data); } catch(e){}

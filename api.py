@@ -52,6 +52,9 @@ class Api:
         self._last_hint = ""
         self._stats_thread = None
         self._stop_stats = threading.Event()
+        # ---- игровой режим ----
+        self._game_suspended = {}
+        self._game_lock = threading.Lock()
 
         # ---- мессенджер и плагины ----
         self._plugins = plugins_mod.PluginManager(
@@ -90,6 +93,68 @@ class Api:
         # поиск сторонних VPN не должен тормозить открытие окна
         threading.Thread(target=self._scan_conflicts, daemon=True).start()
         threading.Thread(target=self._cleanup_orphans, daemon=True).start()
+        # игровой режим: заморозка фоновых приложений и оверлей в UI
+        threading.Thread(target=self._game_loop, daemon=True).start()
+        # автозапуск: если включён в настройках — вернуть запись в реестр
+        if self.settings.get("autostart"):
+            apply_autostart(True)
+
+    def _game_loop(self):
+        """Следит за «тяжёлыми» фоновыми процессами, пока включён игровой режим.
+
+        Найденные процессы замораживаются (NtSuspendProcess), UI получает список
+        и показывает полноэкранное уведомление. При выключении режима или выходе
+        из приложения все замороженные процессы возобновляются.
+        """
+        last_labels = ()
+        while True:
+            time.sleep(5)
+            if not self.settings.get("game_mode"):
+                with self._game_lock:
+                    to_resume = list(self._game_suspended)
+                    self._game_suspended = {}
+                if to_resume:
+                    _suspend_pids(to_resume, resume=True)
+                if last_labels:
+                    last_labels = ()
+                    self._push("window.__pushGame([])")
+                continue
+            import subprocess
+            found = {}
+            try:
+                si = subprocess.STARTUPINFO()
+                si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+                out = subprocess.check_output(
+                    ["tasklist", "/fo", "csv", "/nh"],
+                    startupinfo=si, creationflags=0x08000000,
+                    text=True, errors="ignore", timeout=8,
+                )
+                for line in out.strip().splitlines():
+                    parts = line.split('","')
+                    if len(parts) < 2:
+                        continue
+                    name = (parts[0].strip('"') or "").lower()
+                    pid = parts[1].strip('"')
+                    label = GAME_PROCESSES.get(name)
+                    if label and pid.isdigit():
+                        found.setdefault(label, set()).add(int(pid))
+            except Exception:
+                pass
+
+            with self._game_lock:
+                alive = {pid for pids in found.values() for pid in pids}
+                new_pids = [pid for pids in found.values() for pid in pids
+                            if pid not in self._game_suspended]
+                if new_pids:
+                    _suspend_pids(new_pids)
+                for pid in new_pids:
+                    self._game_suspended[pid] = True
+                self._game_suspended = {
+                    pid: True for pid in self._game_suspended if pid in alive}
+            labels = tuple(sorted(found))
+            if labels != last_labels:
+                last_labels = labels
+                self._push("window.__pushGame(%s)" % json.dumps(list(labels)))
 
     def _cleanup_orphans(self):
         killed = kill_orphans(find_xray(self.settings.get("xray_path", "")))
@@ -791,10 +856,20 @@ class Api:
         cur["news_off"] = bool(patch.get("news_off", cur.get("news_off", False)))
         if "last_news_id" in patch:
             cur["last_news_id"] = str(patch.get("last_news_id", cur.get("last_news_id", "")))
+        # ---- фоновая сцена и шрифт (раньше жили только в JS) ----
+        if "bg_scene" in patch:
+            cur["bg_scene"] = str(patch.get("bg_scene", "") or "")[:32]
+        if "font_style" in patch:
+            cur["font_style"] = str(patch.get("font_style", "") or "")[:32]
+        # ---- автозапуск и игровой режим ----
+        cur["autostart"] = bool(patch.get("autostart", cur.get("autostart", False)))
+        cur["game_mode"] = bool(patch.get("game_mode", cur.get("game_mode", False)))
 
         ok = self._save()
         if ok and "high_priority" in patch:
             apply_priority(bool(cur["high_priority"]))
+        if "autostart" in patch:
+            apply_autostart(bool(cur["autostart"]))
         state = self._state()
         state["saved"] = ok
         return state
@@ -916,6 +991,10 @@ class Api:
     def get_background(self):
         """Возвращает base64-данные фона для отображения в UI."""
         return {"data": storage.load_background()}
+
+    def get_scene_background(self, scene_id):
+        """Возвращает base64-данные встроенного фона сцены (stars/sakura/street)."""
+        return {"data": storage.scene_background(scene_id)}
 
     def remove_background(self):
         """Удаляет пользовательский фон."""
@@ -1116,6 +1195,11 @@ class Api:
             self._stop_stats_loop()
             self._tun.stop()
             self._xray.stop()
+            with self._game_lock:
+                pids = list(self._game_suspended)
+                self._game_suspended = {}
+            if pids:
+                _suspend_pids(pids, resume=True)
             if self.settings.get("system_proxy", True):
                 win_proxy.disable_proxy()
         except Exception:
@@ -1220,7 +1304,7 @@ class Api:
         else:
             mood = "neutral"
         return {
-            "name": str(s.get("ser_name") or "Серийчик"),
+            "name": str(s.get("ser_name") or "Kitagawa"),
             "level": level,
             "xp": xp,
             "xp_next": xp_next,
@@ -1263,12 +1347,16 @@ class Api:
         ok = storage.save_ser_avatar(data_b64)
         return {"ok": ok, "state": self._state()}
 
-    def ser_get_avatar(self):
-        """Возвращает фото Серийчика: своё, если загружено, иначе дефолтное."""
+    def ser_get_avatar(self, level=None):
+        """Возвращает фото Серийчика: своё, если загружено, иначе — по уровню.
+
+        Дефолт растёт вместе с питомцем: 1–50 → первое фото, 51–100 → второе,
+        101–150 → третье, 151+ → четвёртое.
+        """
         data = storage.load_ser_avatar()
         custom = bool(data)
         if not data:
-            data = storage.ser_default_avatar()
+            data = storage.ser_level_avatar(int(level or 1))
         return {"data": data, "custom": custom}
 
     def ser_remove_avatar(self):
@@ -1293,3 +1381,88 @@ def apply_priority(high: bool) -> bool:
             handle, ABOVE_NORMAL if high else NORMAL))
     except Exception:
         return False
+
+
+# Тяжёлые фоновые приложения, которые «игровой режим» замораживает ради FPS.
+# Ключ — имя процесса в нижнем регистре, значение — человеческое имя для UI.
+# Свой список можно расширить прямо здесь: добавьте "имя.exe": "Название".
+GAME_PROCESSES = {
+    "chrome.exe": "Chrome",
+    "msedge.exe": "Edge",
+    "firefox.exe": "Firefox",
+    "opera.exe": "Opera",
+    "brave.exe": "Brave",
+    "discord.exe": "Discord",
+    "spotify.exe": "Spotify",
+    "onedrive.exe": "OneDrive",
+    "dropbox.exe": "Dropbox",
+    "teams.exe": "Teams",
+    "slack.exe": "Slack",
+    "telegram.exe": "Telegram",
+}
+
+
+def apply_autostart(enabled: bool) -> bool:
+    """Включает/выключает автозапуск приложения при входе в Windows (HKCU Run).
+
+    Пишем только в реестр текущего пользователя — не нужны права администратора.
+    """
+    if os.name != "nt":
+        return False
+    import sys as _sys
+    try:
+        import winreg
+        key = winreg.OpenKey(
+            winreg.HKEY_CURRENT_USER,
+            r"Software\Microsoft\Windows\CurrentVersion\Run",
+            0, winreg.KEY_SET_VALUE)
+        try:
+            if enabled:
+                exe = _sys.executable if getattr(_sys, "frozen", False) \
+                    else os.path.abspath(_sys.argv[0])
+                winreg.SetValueEx(key, "MimiBox", 0, winreg.REG_SZ, '"%s"' % exe)
+            else:
+                try:
+                    winreg.DeleteValue(key, "MimiBox")
+                except FileNotFoundError:
+                    pass
+            return True
+        finally:
+            winreg.CloseKey(key)
+    except Exception as e:
+        storage.log("[autostart] ошибка: %s" % e)
+        return False
+
+
+def _suspend_pids(pids, resume: bool = False) -> None:
+    """Приостанавливает (или возобновляет) процессы по PID через NtSuspendProcess.
+
+    Через API ntdll это работает даже для процессов без окна. Процессы других
+    пользователей/служб, на которые нет прав, просто пропускаются.
+    """
+    if not pids:
+        return
+    import ctypes
+    try:
+        ntdll = ctypes.WinDLL("ntdll")
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        PROCESS_SUSPEND_RESUME = 0x0800
+        for pid in pids:
+            try:
+                pid = int(pid)
+            except (TypeError, ValueError):
+                continue
+            if pid <= 0:
+                continue
+            handle = kernel32.OpenProcess(PROCESS_SUSPEND_RESUME, False, pid)
+            if not handle:
+                continue
+            try:
+                if resume:
+                    ntdll.NtResumeProcess(handle)
+                else:
+                    ntdll.NtSuspendProcess(handle)
+            finally:
+                kernel32.CloseHandle(handle)
+    except Exception as e:
+        storage.log("[game] ошибка suspend/resume: %s" % e)

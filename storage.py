@@ -192,6 +192,9 @@ DEFAULT_SETTINGS = {
     "last_news_id": "",         # ID последнего показанного поста
     "news_off": False,          # отключить уведомления о новых постах
     "snow_enabled": True,       # снежинки на подключённом сервере
+    "autostart": False,         # автозапуск приложения при входе в Windows
+    "game_mode": False,         # игровой режим: заморозка фоновых приложений
+    "bg_scene": "",             # выбранная фоновая сцена (stars/sakura/street)
 }
 
 
@@ -512,6 +515,62 @@ def ser_default_avatar() -> str:
         except Exception:
             continue
     return ""
+
+
+def _resource_b64(rel: str) -> str:
+    """Читает файл из ui/ ресурсов приложения (исходники или PyInstaller) в base64."""
+    import base64
+    import sys as _sys
+    candidates = []
+    base = getattr(_sys, "_MEIPASS", None)
+    if base:
+        candidates.append(os.path.join(base, "ui", rel))
+    candidates.append(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                   "ui", rel))
+    for path in candidates:
+        try:
+            if not os.path.exists(path):
+                continue
+            with open(path, "rb") as f:
+                raw = f.read()
+            if len(raw) > 10 * 1024 * 1024:
+                return ""
+            return base64.b64encode(raw).decode("ascii")
+        except Exception:
+            continue
+    return ""
+
+
+def ser_level_avatar(level: int) -> str:
+    """Фото Серийчика по уровню: 1–50 → 1.png, 51–100 → 2.png, 101–150 → 3.png, 151+ → 4.png."""
+    try:
+        level = int(level or 1)
+    except (TypeError, ValueError):
+        level = 1
+    if level <= 50:
+        idx = 1
+    elif level <= 100:
+        idx = 2
+    elif level <= 150:
+        idx = 3
+    else:
+        idx = 4
+    return _resource_b64("ser_kitagawa_%d.png" % idx)
+
+
+SCENE_FILES = {
+    "stars": "bg_stars.png",
+    "sakura": "bg_sakura.png",
+    "street": "bg_street.png",
+}
+
+
+def scene_background(scene_id: str) -> str:
+    """Фоновое изображение сцены (звёзды/сакура/улица) из ресурсов приложения."""
+    rel = SCENE_FILES.get(str(scene_id or ""))
+    if not rel:
+        return ""
+    return _resource_b64(rel)
 
 
 def _atomic_write_raw(path: str, data: bytes) -> bool:
