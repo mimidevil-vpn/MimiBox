@@ -1234,8 +1234,12 @@ class Api:
         return {"ok": ok, "state": self._state()}
 
     def ser_get_avatar(self):
-        """Возвращает своё фото Серийчика (голый base64)."""
-        return {"data": storage.load_ser_avatar()}
+        """Возвращает фото Серийчика: своё, если загружено, иначе дефолтное."""
+        data = storage.load_ser_avatar()
+        custom = bool(data)
+        if not data:
+            data = storage.ser_default_avatar()
+        return {"data": data, "custom": custom}
 
     def ser_remove_avatar(self):
         """Убирает своё фото — возвращается плейсхолдер."""

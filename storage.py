@@ -490,6 +490,30 @@ def remove_ser_avatar() -> bool:
         return False
 
 
+def ser_default_avatar() -> str:
+    """Фото Серийчика по умолчанию — ui/ser_default.png из ресурсов приложения."""
+    import base64
+    import sys as _sys
+    candidates = []
+    base = getattr(_sys, "_MEIPASS", None)
+    if base:
+        candidates.append(os.path.join(base, "ui", "ser_default.png"))
+    candidates.append(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                   "ui", "ser_default.png"))
+    for path in candidates:
+        try:
+            if not os.path.exists(path):
+                continue
+            with open(path, "rb") as f:
+                raw = f.read()
+            if len(raw) > 10 * 1024 * 1024:
+                return ""
+            return base64.b64encode(raw).decode("ascii")
+        except Exception:
+            continue
+    return ""
+
+
 def _atomic_write_raw(path: str, data: bytes) -> bool:
     """Атомарная запись бинарных данных."""
     global _last_error

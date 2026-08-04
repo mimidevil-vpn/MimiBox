@@ -450,6 +450,8 @@ select.input{appearance:none;background-image:linear-gradient(45deg,transparent 
 .msgr-login-card .input{margin-bottom:12px}
 .msgr-login-actions{display:flex;gap:10px;align-items:center;margin-top:6px;flex-wrap:wrap}
 .msgr-login-hint{font-size:12px;color:var(--faint);margin-top:12px;line-height:1.5}
+.msgr-login-hint.warn{color:#ffc46b}
+.msgr-login-hint.err{color:#ff8fa3}
 .tg-hint{font-size:12px;color:var(--faint);margin-top:12px;line-height:1.5}
 .tg-hint.err{color:#FF8FA3}
 .msgr-plugins-card{width:320px;padding:24px}
@@ -1142,6 +1144,7 @@ audio.msg-voice{max-width:260px;height:40px;margin-top:4px;border-radius:14px;ba
                 <button class="btn ghost small danger" id="tgLoginCancelBtn" hidden data-i18n="tgCancel">Отмена</button>
               </div>
               <div class="msgr-login-hint" id="tgLoginHint"></div>
+              <div class="msgr-login-hint warn" id="msgrOffline" hidden data-i18n="tgOffline">Telegram сейчас недоступен — нужен VPN. Сессия не потеряна, подключусь автоматически.</div>
             </div>
 
             <div class="glass msgr-plugins-card">
@@ -1365,6 +1368,7 @@ const I18N = {
     tgPlugins:'Плагины', tgPluginsHint:'Как в ExtraGram: положи .py в папку plugins — команды и обработчики заработают.',
     tgPluginsFolder:'Папка', tgPluginsReload:'Перезагрузить', tgPluginsFolderHint:'Папка данных\\plugins\\*.py',
     tgNeedCreds:'Введи телефон — код придёт в Telegram, затем пароль, если включён 2FA.',
+    tgOffline:'Telegram сейчас недоступен — нужен VPN. Сессия не потеряна, подключусь автоматически.',
     tgSending:'Отправка…', tgLoadingChat:'Загрузка…', tgErrOp:'Ошибка:',
     tgLoggedOut:'Вышли из аккаунта', tgSent:'Отправлено',
     tgMediaPhoto:'Фото', tgMediaGif:'GIF', tgMediaSticker:'Стикер', tgMediaVoice:'Голосовое',
@@ -1454,6 +1458,7 @@ const I18N = {
     tgPlugins:'Plugins', tgPluginsHint:'Like in ExtraGram: put a .py into the plugins folder — commands and handlers will work.',
     tgPluginsFolder:'Folder', tgPluginsReload:'Reload', tgPluginsFolderHint:'Data folder\\plugins\\*.py',
     tgNeedCreds:'Enter api_id and api_hash from my.telegram.org, then the phone — the code will arrive in Telegram.',
+    tgOffline:'Telegram is unreachable — VPN required. Your session is safe, I\'ll reconnect automatically.',
     tgSending:'Sending…', tgLoadingChat:'Loading…', tgErrOp:'Error:',
     tgLoggedOut:'Logged out', tgSent:'Sent',
     tgMediaPhoto:'Photo', tgMediaGif:'GIF', tgMediaSticker:'Sticker', tgMediaVoice:'Voice',
@@ -2072,6 +2077,8 @@ let TG = {
   downloading: {},
   voiceEls: {},
   archiveOpen: false,
+  offline: false,
+  lastDlgRefresh: 0,
 };
 function tgLoginHint(text, type){
   const h = $('#tgLoginHint');
@@ -2125,11 +2132,13 @@ function renderMsgr(){
       $('#chatBody').innerHTML = '<div class="empty-state">' + esc(t('tgChooseChat')) + '</div>';
     }
   } else {
-    $('#tgCodeWrap').hidden = TG.loginStep !== 'code';
-    $('#tgPassWrap').hidden = TG.loginStep !== 'password';
-    $('#tgSendCodeBtn').hidden = TG.loginStep !== 'phone';
-    $('#tgLoginBtn').hidden = TG.loginStep === 'phone';
-    $('#tgLoginCancelBtn').hidden = TG.loginStep === 'phone';
+    const off = $('#msgrOffline');
+    if (off) off.hidden = !TG.offline;
+    $('#tgCodeWrap').hidden = TG.loginStep !== 'code' || TG.offline;
+    $('#tgPassWrap').hidden = TG.loginStep !== 'password' || TG.offline;
+    $('#tgSendCodeBtn').hidden = TG.loginStep !== 'phone' || TG.offline;
+    $('#tgLoginBtn').hidden = TG.loginStep === 'phone' || TG.offline;
+    $('#tgLoginCancelBtn').hidden = TG.loginStep === 'phone' || TG.offline;
   }
 }
 function renderDialogList(){
@@ -2298,7 +2307,7 @@ function tgAddMessage(ev){
   renderDialogList();
   if (screen === 'messenger') {
     if (TG.active === peer) renderChat();
-    else if (!ev.out && !d.muted && ev.text !== null && ev.text !== undefined) {
+    else if (!ev.out && !(ev.muted || (d && d.muted)) && ev.text !== null && ev.text !== undefined) {
       toast(((d.title || '') + ': ' + (ev.text || tgMediaLabel(ev.media))).slice(0, 80), 'accent');
     }
   }
@@ -2353,6 +2362,8 @@ function tgPush(ev){
       break;
     case 'message': tgAddMessage(ev); break;
     case 'sent': tgAddMessage(ev); break;
+    case 'tg_offline': TG.offline = true; renderMsgr(); break;
+    case 'tg_online': TG.offline = false; renderMsgr(); break;
     case 'plugin_reply': tgAddPluginReply(ev); break;
     case 'thumb':
       TG.thumbs[ev.peer_id] = TG.thumbs[ev.peer_id] || {};
@@ -2411,10 +2422,19 @@ async function tgSync(){
     TG.authorized = !!st.authorized;
     if (st.phone) TG.phone = st.phone;
     if (st.me && st.me.id) TG.me = st.me;
+    TG.offline = !!st.offline;
     if (!TG.authorized && !st.has_credentials) tgLoginHint(t('tgNeedCreds'), '');
     renderMsgr();
-    if (TG.authorized && !TG.dialogsLoaded) api().tg_refresh().catch(() => {});
-    if (TG.authorized) tgSyncPlugins();
+    if (TG.authorized) {
+      // список диалогов обновляем при каждом открытии (с троттлингом),
+      // чтобы новые чаты не «зависали старыми» до ручного рефреша
+      const now = Date.now();
+      if (!TG.dialogsLoaded || !TG.lastDlgRefresh || (now - TG.lastDlgRefresh) > 20000) {
+        TG.lastDlgRefresh = now;
+        api().tg_refresh().catch(() => {});
+      }
+      tgSyncPlugins();
+    }
   } catch(e){}
 }
 async function tgLoginStart(){
@@ -2734,7 +2754,8 @@ async function closeNews(){
 
 /* ============ Серийчик ============ */
 const SER_FEED_MB = 50;
-let serAvatar = '';
+let serAvatar = '';   // текущее фото (своё или дефолтное), голый base64
+let serCustom = false; // загружено ли своё фото
 function serStage(mood){
   if (serAvatar) {
     return '<img class="ser-photo" src="data:image/png;base64,' + serAvatar + '" alt="Серийчик" aria-hidden="true">';
@@ -2747,7 +2768,7 @@ async function renderSer(){
   if (!api()) { root.innerHTML = ''; return; }
   let st = S;
   try { const r = await api().get_state(); if (r) { applyState(r); st = r; } } catch(e){}
-  try { const a = await api().ser_get_avatar(); serAvatar = (a && a.data) ? a.data : ''; } catch(e){ serAvatar = ''; }
+  try { const a = await api().ser_get_avatar(); serAvatar = (a && a.data) ? a.data : ''; serCustom = !!(a && a.custom); } catch(e){ serAvatar = ''; serCustom = false; }
   const ser = (st && st.ser) || {};
   const pct = ser.xp_next ? Math.min(100, Math.round((ser.xp || 0) * 100 / ser.xp_next)) : 0;
   const hunger = ser.hunger != null ? ser.hunger : 100;
@@ -2772,7 +2793,7 @@ async function renderSer(){
           '<div class="ser-actions">' +
             '<button class="btn primary" id="serFeedBtn">' + t('serFeed') + '</button>' +
             '<button class="btn ghost small" id="serPhotoBtn">📷 ' + t('serPhoto') + '</button>' +
-            (serAvatar ? '<button class="btn ghost small danger" id="serPhotoDelBtn" title="' + t('serPhotoDel') + '">✕</button>' : '') +
+            (serCustom ? '<button class="btn ghost small danger" id="serPhotoDelBtn" title="' + t('serPhotoDel') + '">✕</button>' : '') +
           '</div>' +
         '</div>' +
       '</div>' +
@@ -2800,6 +2821,7 @@ async function serPickPhoto(){
       if (r && r.error) { toast(String(r.error), 'err'); return; }
       if (r && r.state) applyState(r.state);
       serAvatar = b64;
+      serCustom = true;
       renderSer();
       toast(t('serPhotoDone'), 'ok');
     };
@@ -2810,7 +2832,8 @@ async function serPickPhoto(){
 async function serRemovePhoto(){
   if (!api()) return;
   try { await api().ser_remove_avatar(); } catch(e){}
-  serAvatar = '';
+  serCustom = false;
+  try { const a = await api().ser_get_avatar(); serAvatar = (a && a.data) ? a.data : ''; } catch(e){ serAvatar = ''; }
   renderSer();
   toast(t('serPhotoDelDone'), 'ok');
 }

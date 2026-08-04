@@ -22,6 +22,7 @@ import os
 import re
 import io
 import sys
+import time
 import base64
 import asyncio
 import threading
@@ -90,6 +91,10 @@ class TgMessenger:
         self._phone = ""
         self._phone_code_hash = None
         self._handler_registered = False
+        self._offline = False          # сеть/прокси недоступны, сессия не потеряна
+        self._logging_in = False       # идёт ручной вход — сторож не мешает
+        self._auth_emitted = False     # not_authorized уже показан один раз
+        self._keepalive_task = None
 
         # хуки, которые вешает api.py: плагины и рассылка в UI
         self._on_before_send = None   # fn(ev) -> {"handled": bool, "reply": str}
@@ -128,9 +133,15 @@ class TgMessenger:
             self._loop = None
 
     async def _bootstrap(self):
-        """При старте: пробуем восстановить сессию."""
+        """При старте: пробуем восстановить сессию.
+
+        Если Telegram сейчас недоступен (нет VPN/сети) — сессия НЕ теряется и
+        экран входа НЕ показывается: уходим в фоновый keepalive и, как только
+        сеть вернётся, восстанавливаемся автоматически.
+        """
         api_id, api_hash = self._resolve_creds()
         if not api_id or not api_hash:
+            self._auth_emitted = True
             self._emit({"type": "need_credentials"})
             return
         try:
@@ -138,17 +149,65 @@ class TgMessenger:
             await self._client.connect()
         except Exception as e:
             self._log("[tg] подключение не удалось: %s" % e)
-            self._emit_error("connect", str(e))
+            self._offline = True
+            self._emit({"type": "tg_offline"})
+            self._schedule_keepalive()
             return
         try:
             ok = await self._client.is_user_authorized()
         except Exception as e:
             self._emit_error("auth", str(e))
+            self._schedule_keepalive()
             return
         if ok:
             await self._after_login()
         else:
+            self._auth_emitted = True
             self._emit({"type": "not_authorized"})
+        self._schedule_keepalive()
+
+    def _schedule_keepalive(self):
+        """Один фоновый сторож на всё время жизни клиента."""
+        if self._keepalive_task is not None or self._loop is None:
+            return
+        self._keepalive_task = self._loop.create_task(self._keepalive())
+
+    async def _keepalive(self):
+        """Держит соединение с Telegram живым.
+
+        При сбросе VPN-соединения TCP-связь Telethon рвётся. Вместо того чтобы
+        «закрыть сессию» (показать вход заново), переподключаемся в фоне —
+        как только сеть поднимется, работа продолжается на той же сессии.
+        """
+        while True:
+            try:
+                await asyncio.sleep(12)
+                c = self._client
+                if c is None:
+                    continue
+                if not c.is_connected():
+                    if self._logging_in:
+                        continue
+                    try:
+                        await c.connect()
+                    except Exception:
+                        continue
+                    if self._offline:
+                        self._offline = False
+                        self._emit({"type": "tg_online"})
+                if self._authorized or self._logging_in:
+                    continue
+                try:
+                    ok = await c.is_user_authorized()
+                except Exception:
+                    continue
+                if ok:
+                    await self._after_login()
+                elif not self._auth_emitted:
+                    self._auth_emitted = True
+                    self._emit({"type": "not_authorized"})
+            except Exception as e:
+                self._log("[tg] keepalive: %s" % e)
 
     # ------------------------------------------------------------- helpers
     def _session_path(self):
@@ -164,9 +223,18 @@ class TgMessenger:
                 app_version="4.0.0",
                 lang_code="en",
                 system_lang_code="en",
+                connection_retries=2,
+                retry_delay=3,
             )
         except TypeError:
-            return TelegramClient(self._session_path(), api_id, api_hash)
+            try:
+                return TelegramClient(
+                    self._session_path(), api_id, api_hash,
+                    connection_retries=2,
+                    retry_delay=3,
+                )
+            except TypeError:
+                return TelegramClient(self._session_path(), api_id, api_hash)
 
     def _media_dir(self):
         p = os.path.join(self._dir, _MEDIA_DIR)
@@ -217,6 +285,7 @@ class TgMessenger:
             "authorized": self._authorized,
             "phone": self._phone,
             "running": self.is_running(),
+            "offline": self._offline,
         }
 
     def me_json(self):
@@ -403,6 +472,20 @@ class TgMessenger:
         for key in keys[:50]:
             await self._avatar_flow(key)
 
+    @staticmethod
+    def _chat_muted(notify) -> bool:
+        """Чат с выключенными уведомлениями.
+
+        У Telegram «замьючен навсегда» — это mute_until = 2^31-1, временный мьют —
+        будущая метка времени, снятый мьют — 0/None. Сравниваем с текущим временем,
+        чтобы протухший мьют не считался активным.
+        """
+        try:
+            until = int(getattr(notify, "mute_until", 0) or 0)
+        except (TypeError, ValueError):
+            return False
+        return until > 0 and until > int(time.time())
+
     def _dialog_json(self, d, ent):
         last = ""
         if d.message is not None:
@@ -417,8 +500,8 @@ class TgMessenger:
             "last": last,
             "date": int(d.date.timestamp()) if getattr(d, "date", None) else 0,
             "username": getattr(ent, "username", "") or "",
-            "archived": bool(getattr(d, "archived", False)),
-            "muted": bool(getattr(notify, "mute_until", None)),
+            "archived": bool(getattr(d, "folder_id", None) == 1),
+            "muted": self._chat_muted(notify),
         }
 
     def _dialogs_list(self):
@@ -544,6 +627,10 @@ class TgMessenger:
         lst = self._messages.get(peer_key)
         if lst is not None:
             lst.append(ev)
+        # флаг «уведомления выключены» едет вместе с сообщением, чтобы JS
+        # не показывал тост для замьюченных чатов (в т.ч. если чата ещё нет в списке)
+        dlg = self._dialogs_cache.get(peer_key)
+        ev["muted"] = bool(dlg.get("muted", False)) if dlg else False
         self._bump_dialog(peer_key, ev)
         self._emit({"type": ev_type, "peer_id": peer_key, **ev})
 
@@ -746,6 +833,8 @@ class TgMessenger:
         if not api_id or not api_hash:
             self._emit({"type": "need_credentials"})
             return
+        self._logging_in = True
+        self._offline = False
         if self._client is None:
             self._client = self._new_client(api_id, api_hash)
         if not self._client.is_connected():
@@ -821,6 +910,9 @@ class TgMessenger:
             return
         self._me = me
         self._authorized = True
+        self._logging_in = False
+        self._offline = False
+        self._auth_emitted = False
         self._register_handler()
         self._emit({"type": "ready", "me": self.me_json()})
         await self._refresh_dialogs()

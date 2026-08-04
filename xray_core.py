@@ -176,6 +176,10 @@ def split_rules(entries) -> tuple:
 # шум, а не ошибки — туннелировать его нельзя (и не нужно), отправляем напрямую.
 LAN_UDP_PORTS = [67, 68, 137, 138, 139, 5353, 1900]
 
+# Xray в поле routing.port принимает число или строку вида "67,68,137-139",
+# но НЕ массив — иначе «invalid port» и ядро не стартует вовсе.
+LAN_UDP_PORTS_STR = ",".join(str(p) for p in LAN_UDP_PORTS)
+
 
 def build_routing(mode: str, direct_entries=None, block_entries=None) -> dict:
     """mode: global (всё через VPN) | rules (RU и локальные напрямую) | direct."""
@@ -186,7 +190,7 @@ def build_routing(mode: str, direct_entries=None, block_entries=None) -> dict:
         {"type": "field", "ip": ["geoip:private"], "outboundTag": "direct"},
         {"type": "field", "domain": ["domain:localhost"], "outboundTag": "direct"},
         # широковещательный UDP-шум Windows — напрямую, иначе он топит логи
-        {"type": "field", "network": "udp", "port": LAN_UDP_PORTS,
+        {"type": "field", "network": "udp", "port": LAN_UDP_PORTS_STR,
          "outboundTag": "direct"},
     ]
 
