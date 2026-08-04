@@ -194,6 +194,7 @@ class Api:
             "conflicts": list(self._conflicts),
             "sub": self._sub_info(),
             "tg": self._tg.status(),
+            "ser": self._ser_json(),
             "save_error": self._save_error,
             "data_dir": storage.data_dir(),
             "speed": {"up": self._speed[0], "down": self._speed[1],
@@ -571,10 +572,8 @@ class Api:
         return st
 
     def tg_login(self, phone, api_id="", api_hash=""):
-        if api_id or api_hash:
-            self.settings["tg_api_id"] = str(api_id or "").strip()
-            self.settings["tg_api_hash"] = str(api_hash or "").strip()
-            self._save()
+        # api_id/api_hash зашиты в tg_client.py (публичные константы клиента Telegram).
+        # Параметры оставлены для совместимости со старыми сборками и больше не пишутся в настройки.
         ok = self._tg.login(phone, api_id, api_hash)
         return {"ok": ok}
 
@@ -624,6 +623,41 @@ class Api:
                 f.write(raw)
         except Exception as e:
             storage.log("[tg] не удалось сохранить файл: %s" % e)
+            return {"ok": False}
+        return {"ok": self._tg.send_file(peer, path)}
+
+    def tg_send_url(self, peer, url):
+        """Скачивает GIF/файл по ссылке и отправляет в чат (для пикера GIF)."""
+        import urllib.request as _req
+        import urllib.error as _err
+        url = str(url or "").strip()
+        if not url.startswith(("http://", "https://")):
+            return {"ok": False, "error": "bad_url"}
+        try:
+            _opener = _req.build_opener(_req.ProxyHandler({}))
+            req = _req.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+            with _opener.open(req, timeout=20) as resp:
+                raw = resp.read()
+        except Exception as e:
+            storage.log("[tg] не удалось скачать URL: %s" % e)
+            return {"ok": False, "error": "download_failed"}
+        if not raw or len(raw) > 50 * 1024 * 1024:
+            return {"ok": False, "error": "too_big"}
+        name = os.path.basename(url.split("?", 1)[0]) or "media"
+        if not name.lower().endswith((".gif", ".png", ".jpg", ".jpeg", ".webp", ".mp4", ".webm")):
+            name += ".gif"
+        safe = "".join(ch if ch.isalnum() or ch in "._-" else "_" for ch in name)
+        folder = os.path.join(storage.data_dir(), "tg_uploads")
+        try:
+            os.makedirs(folder, exist_ok=True)
+        except Exception:
+            pass
+        path = os.path.join(folder, "%d_%s" % (int(time.time() * 1000), safe))
+        try:
+            with open(path, "wb") as f:
+                f.write(raw)
+        except Exception as e:
+            storage.log("[tg] не удалось сохранить URL: %s" % e)
             return {"ok": False}
         return {"ok": self._tg.send_file(peer, path)}
 
@@ -1107,6 +1141,69 @@ class Api:
                 window.evaluate_js(js)
             except Exception:
                 pass
+
+    # ------------------------------------------------------------ Серийчик
+    def _ser_json(self):
+        """Питомец-аниме-девушка. Кормится VPN-трафиком: всё, что прокачано
+        сверх прошлой точки, падает в «запас еды» (ser_bank)."""
+        s = self.settings
+        level = max(1, int(s.get("ser_level") or 1))
+        xp = int(s.get("ser_xp") or 0)
+        xp_next = level * 100
+        last_feed = int(s.get("ser_last_feed") or 0)
+        hunger = 100
+        if last_feed:
+            hunger = max(0, 100 - int((time.time() - last_feed) // 900))  # -4 в час
+        total = int(self._total[0] or 0) + int(self._total[1] or 0)
+        baseline = int(s.get("ser_baseline") or 0)
+        bank = int(s.get("ser_bank") or 0)
+        if total > baseline:
+            bank += total - baseline
+            s["ser_baseline"] = total
+            s["ser_bank"] = bank
+            self._save()
+        if hunger <= 25:
+            mood = "hungry"
+        elif self.connected:
+            mood = "happy"
+        else:
+            mood = "neutral"
+        return {
+            "name": str(s.get("ser_name") or "Серийчик"),
+            "level": level,
+            "xp": xp,
+            "xp_next": xp_next,
+            "hunger": int(hunger),
+            "bank": int(bank),
+            "mood": mood,
+            "connected": bool(self.connected),
+        }
+
+    def ser_feed(self, mb=50):
+        mb = max(1, int(mb or 50))
+        amount = mb * 1024 * 1024
+        ser = self._ser_json()
+        if ser["bank"] < amount:
+            return {"ok": False, "state": self._state(), "error": "not_enough"}
+        s = self.settings
+        s["ser_bank"] = ser["bank"] - amount
+        level, xp = ser["level"], ser["xp"] + mb
+        while xp >= level * 100:
+            xp -= level * 100
+            level += 1
+        s["ser_level"] = level
+        s["ser_xp"] = xp
+        s["ser_last_feed"] = int(time.time())
+        self._save()
+        return {"ok": True, "state": self._state()}
+
+    def ser_set_name(self, name):
+        name = str(name or "").strip()
+        if not name:
+            return {"ok": False, "error": "empty"}
+        self.settings["ser_name"] = name[:24]
+        self._save()
+        return {"ok": True, "state": self._state()}
 
 
 def apply_priority(high: bool) -> bool:

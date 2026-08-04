@@ -43,10 +43,12 @@ from telethon.tl.types import (
     MessageMediaWebPage,
 )
 
-# Заполняется из настроек приложения (tg_api_id / tg_api_hash). Пустые —
-# значит пользователь ещё не ввёл свои, и UI попросит их указать.
-DEFAULT_API_ID = ""
-DEFAULT_API_HASH = ""
+# Публичная пара api_id/api_hash официального десктопного клиента Telegram.
+# Используется для входа «как в официальном приложении» — только телефон + код из SMS + пароль 2FA.
+# Не хранится в настройках и не видна в UI (массовое распространение сборки).
+# При желании можно заменить на свою пару с https://my.telegram.org/apps.
+DEFAULT_API_ID = "2040"
+DEFAULT_API_HASH = "b18441a1ff607e10a989891a5462e627"
 
 _SESSION_FILE = "tg.session"
 _MEDIA_DIR = "tg_media"

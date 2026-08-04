@@ -45,13 +45,33 @@ input,textarea,select{font-family:inherit;color:inherit}
 
 /* ---------- background layers ---------- */
 .bg{position:fixed;inset:0;z-index:0;overflow:hidden;background:var(--bg0)}
-.bg-scene{position:absolute;pointer-events:none;color:#fff;transition:opacity .4s var(--ease)}
-.bg-rooftop{right:-5%;top:2%;width:58vw;height:80vh;opacity:.055;mix-blend-mode:screen}
-.bg-arch{left:-7%;bottom:-3%;width:36vw;height:90vh;opacity:.05;mix-blend-mode:screen}
-.bg-street{left:0;bottom:0;width:100vw;height:26vh;opacity:.045;mix-blend-mode:screen}
-body.theme-light .bg-rooftop{opacity:.035}
-body.theme-light .bg-arch{opacity:.032}
-body.theme-light .bg-street{opacity:.03}
+.bg-scene{position:absolute;pointer-events:none;color:#fff;transition:opacity .4s var(--ease);opacity:0}
+.bg-rooftop{right:-5%;top:2%;width:58vw;height:80vh;mix-blend-mode:screen}
+.bg-arch{left:-7%;bottom:-3%;width:36vw;height:90vh;mix-blend-mode:screen}
+.bg-street{left:0;bottom:0;width:100vw;height:26vh;mix-blend-mode:screen}
+.bg-sakura{left:-2%;top:0;width:46vw;height:72vh;mix-blend-mode:screen}
+.bg-stars{left:0;top:0;width:100vw;height:60vh;mix-blend-mode:screen}
+body[data-scene="rooftop"] .bg-rooftop{opacity:.055}
+body[data-scene="arch"] .bg-arch{opacity:.05}
+body[data-scene="street"] .bg-street{opacity:.045}
+body[data-scene="sakura"] .bg-sakura{opacity:.06}
+body[data-scene="stars"] .bg-stars{opacity:.07}
+body.theme-light[data-scene="rooftop"] .bg-rooftop{opacity:.035}
+body.theme-light[data-scene="arch"] .bg-arch{opacity:.032}
+body.theme-light[data-scene="street"] .bg-street{opacity:.03}
+body.theme-light[data-scene="sakura"] .bg-sakura{opacity:.04}
+body.theme-light[data-scene="stars"] .bg-stars{opacity:.05}
+
+/* ---------- галлереи сцен и шрифтов ---------- */
+.scene-gallery{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;flex:1;min-width:220px}
+.scene-item{display:flex;flex-direction:column;align-items:center;gap:6px;padding:9px 6px;border-radius:12px;
+  background:var(--glass);border:1px solid var(--line);color:var(--dim);cursor:pointer;transition:all .2s var(--ease);font:inherit}
+.scene-item .si-icon{font-size:20px;line-height:1}
+.scene-item .si-name{font-size:10px;font-weight:800;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.scene-item:hover{border-color:rgba(225,139,255,.5);color:var(--text);transform:translateY(-2px)}
+.scene-item.on{background:rgba(225,139,255,.12);border-color:var(--lav);color:#fff;box-shadow:0 0 18px rgba(225,139,255,.18)}
+.scene-item.font-item .si-prev{font-size:15px;line-height:1.15;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700}
+.scene-item.font-item .si-name{font-size:9px}
 
 #wallpaper{position:fixed;inset:0;z-index:1;background-size:cover;background-position:center;opacity:.2;filter:blur(1px);display:none}
 #wallpaper.on{display:block}
@@ -201,6 +221,8 @@ select.input{appearance:none;background-image:linear-gradient(45deg,transparent 
   box-shadow:0 0 64px rgba(255,122,205,.45),0 18px 46px rgba(0,0,0,.45)}
 .connect-btn.on .cb-label{color:rgba(255,255,255,.92)}
 .connect-btn.on .cb-icon{text-shadow:0 0 18px rgba(255,255,255,.6)}
+.connect-btn.on:not(.busy){animation:btn-pulse 2.6s var(--ease) infinite}
+@keyframes btn-pulse{0%,100%{box-shadow:0 0 64px rgba(255,122,205,.45),0 18px 46px rgba(0,0,0,.45);transform:scale(1)}50%{box-shadow:0 0 92px rgba(255,122,205,.72),0 18px 46px rgba(0,0,0,.45);transform:scale(1.035)}}
 .connect-btn.busy{border-style:dashed;animation:spin-border 1.6s linear infinite}
 .connect-btn.busy::after{content:"";position:absolute;inset:6px;border-radius:50%;border:1px dashed rgba(255,122,205,.5);animation:spin-border 1.6s linear infinite reverse}
 @keyframes spin-border{to{transform:rotate(360deg)}}
@@ -340,6 +362,48 @@ select.input{appearance:none;background-image:linear-gradient(45deg,transparent 
 #newsBanner .nb-body{flex:1;color:var(--text);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #newsBanner .nb-x{flex:none}
 
+/* ---------- news screen ---------- */
+.news-screen{max-width:720px;margin:0 auto;padding-top:3vh}
+.news-card{border-radius:16px;overflow:hidden}
+.news-card-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--line)}
+.news-card-badge{font-weight:800;font-size:12px;letter-spacing:.14em;color:var(--lav);
+  padding:5px 12px;border:1px solid rgba(200,132,255,.35);border-radius:999px}
+.news-card-date{font-size:11px;color:var(--dim)}
+.news-card-body{padding:20px;font-size:14px;line-height:1.65;color:var(--text);white-space:pre-wrap;word-break:break-word}
+.news-card-body a{color:var(--lav)}
+.news-card-foot{display:flex;gap:10px;padding:14px 20px;border-top:1px solid var(--line);flex-wrap:wrap}
+.spoiler{filter:blur(6px);transition:filter .2s;cursor:pointer;background:rgba(255,122,205,.12);border-radius:6px}
+.spoiler:hover{filter:none}
+.news-empty-note{color:var(--dim);font-size:12px;padding:14px 0 4px}
+
+/* ---------- Серийчик ---------- */
+:root{
+  --ser-hairA:#ff9ecb;--ser-hairB:#b76bff;--ser-skin:#ffe6dc;--ser-blush:#ff9db3;
+  --ser-dressA:#ff7acd;--ser-dressB:#c284ff;--ser-glow:#ff9ef5}
+.ser-wrap{max-width:680px;margin:0 auto;padding-top:3vh}
+.ser-card{display:flex;gap:28px;padding:30px;align-items:center;border-radius:18px;flex-wrap:wrap;justify-content:center}
+.ser-stage{position:relative}
+.ser-svg{width:210px;height:260px;display:block;filter:drop-shadow(0 12px 34px rgba(255,122,205,.28))}
+.ser-mood-happy .ser-svg{animation:ser-bob 3s var(--ease) infinite}
+.ser-mood-hungry .ser-svg{animation:ser-wob 1.6s ease-in-out infinite}
+@keyframes ser-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+@keyframes ser-wob{0%,100%{transform:rotate(0)}25%{transform:rotate(-2.5deg)}75%{transform:rotate(2.5deg)}}
+.ser-level-badge{position:absolute;bottom:4px;left:50%;transform:translateX(-50%);background:var(--accent-grad);color:#fff;font-weight:900;font-size:11px;letter-spacing:.12em;padding:5px 13px;border-radius:999px;box-shadow:0 6px 18px rgba(255,122,205,.45)}
+.ser-info{flex:1;min-width:260px;display:flex;flex-direction:column;gap:12px}
+.ser-name-row{display:flex;gap:8px;align-items:center}
+.ser-name-input{font-weight:800;letter-spacing:.02em}
+.ser-mood{font-size:13px;color:var(--lav);font-weight:800;letter-spacing:.03em}
+.ser-bar{display:flex;flex-direction:column;gap:5px}
+.ser-bar-label{display:flex;justify-content:space-between;font-size:11px;color:var(--dim);font-weight:700;letter-spacing:.06em}
+.ser-bar-track{height:9px;border-radius:999px;background:rgba(255,255,255,.06);overflow:hidden;border:1px solid var(--line)}
+.ser-bar-fill{height:100%;border-radius:999px;transition:width .5s var(--ease)}
+.ser-bar-fill.xp{background:var(--accent-grad)}
+.ser-bar-fill.hunger{background:linear-gradient(90deg,#ffd97a,#ff9ecb)}
+.ser-bar-fill.hunger.warn{background:linear-gradient(90deg,#ff7a7a,#ff5e9e)}
+.ser-bank{font-size:12.5px;color:var(--text)}
+.ser-hint{font-size:12px;color:var(--dim);line-height:1.5}
+.ser-actions{display:flex;gap:10px;margin-top:2px;flex-wrap:wrap}
+
 /* ---------- toasts ---------- */
 #toasts{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);z-index:80;display:flex;flex-direction:column;gap:10px;align-items:center}
 .toast{padding:12px 20px;border-radius:12px;font-size:13px;font-weight:700;max-width:70vw;
@@ -350,6 +414,20 @@ select.input{appearance:none;background-image:linear-gradient(45deg,transparent 
 .toast.warn{border-color:rgba(255,184,108,.45)}
 .toast.accent{border-color:rgba(225,139,255,.5)}
 @keyframes toastIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+
+/* ---------- приветствие ---------- */
+.welcome-overlay{position:fixed;inset:0;z-index:90;display:grid;place-items:center;background:rgba(8,8,10,.62);backdrop-filter:blur(8px);animation:fadeIn .3s var(--ease)}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.welcome-card{max-width:430px;width:calc(100% - 48px);padding:34px 34px 26px;text-align:center;border-radius:20px;animation:toastIn .35s var(--ease)}
+.welcome-logo{margin-bottom:16px}
+.welcome-logo .logo-mark{width:76px;height:76px;font-size:38px;margin:0 auto}
+.welcome-title{font-size:24px;margin:0 0 10px}
+.welcome-desc{font-size:13.5px;line-height:1.6;color:var(--dim);margin:0;min-height:64px}
+.welcome-steps{display:flex;justify-content:center;gap:7px;margin:20px 0 8px}
+.welcome-steps i{width:7px;height:7px;border-radius:50%;background:var(--bg3);transition:all .25s var(--ease)}
+.welcome-steps i.on{width:22px;border-radius:999px;background:var(--accent-grad)}
+.welcome-actions{display:flex;justify-content:center;gap:12px;margin-top:16px}
+.welcome-actions .btn{min-width:110px}
 
 /* ---------- scrollbars ---------- */
 ::-webkit-scrollbar{width:9px;height:9px}
@@ -431,6 +509,21 @@ select.input{appearance:none;background-image:linear-gradient(45deg,transparent 
 .msgr-chat-input textarea{flex:1;resize:none;min-height:42px;max-height:140px;padding:10px 13px;font-size:13px;line-height:1.4}
 #chatSendBtn{width:42px;height:42px;flex:none;border-radius:12px;font-size:15px;padding:0}
 #chatAttachBtn{width:42px;height:42px;flex:none;border-radius:12px;font-size:17px;padding:0}
+#chatStickerBtn{width:42px;height:42px;flex:none;border-radius:12px;font-size:16px;padding:0}
+.msgr-composer{flex:none}
+.msgr-picker{border-top:1px solid var(--line-soft);background:rgba(20,20,24,.55);backdrop-filter:blur(8px)}
+.picker-head{display:flex;align-items:center;gap:6px;padding:8px 14px}
+.picker-tab{background:none;border:none;color:var(--dim);font-size:11px;font-weight:800;letter-spacing:.1em;padding:6px 12px;border-radius:999px;cursor:pointer;transition:all .2s var(--ease)}
+.picker-tab.on{background:rgba(225,139,255,.14);color:#fff}
+.picker-x{margin-left:auto;background:none;border:none;color:var(--dim);cursor:pointer;font-size:14px;padding:4px 8px}
+.picker-x:hover{color:var(--text)}
+.picker-body{padding:4px 14px 14px;max-height:220px;overflow-y:auto}
+.sticker-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:6px}
+.sticker-cell{font-size:26px;line-height:1;text-align:center;padding:9px 0;border-radius:12px;cursor:pointer;transition:all .16s var(--ease);background:transparent}
+.sticker-cell:hover{background:rgba(225,139,255,.16);transform:scale(1.18)}
+.gif-row{display:flex;gap:8px;align-items:center}
+.gif-row .input{flex:1}
+.picker-note{font-size:11.5px;color:var(--dim);margin-top:8px;line-height:1.5}
 
 /* ---- плагины ---- */
 .msgr-modal{position:fixed;inset:0;z-index:90;display:flex;align-items:center;justify-content:center;
@@ -559,6 +652,49 @@ select.input{appearance:none;background-image:linear-gradient(45deg,transparent 
     <circle cx="1122" cy="92" r="2" fill="currentColor"/>
   </svg>
 
+  <svg class="bg-scene bg-sakura" viewBox="0 0 640 700" preserveAspectRatio="xMidYMax slice" fill="none" stroke="currentColor">
+    <g stroke-width="3" stroke-linecap="round">
+      <path d="M60 700 C 90 560 170 470 300 430"/>
+      <path d="M160 560 C 200 520 260 490 340 480"/>
+      <path d="M260 640 C 300 600 350 570 420 560"/>
+      <path d="M300 430 C 330 380 300 330 260 300"/>
+      <path d="M300 430 C 360 420 400 380 420 330"/>
+      <path d="M330 400 C 350 370 340 340 315 318"/>
+    </g>
+    <g fill="currentColor">
+      <ellipse cx="260" cy="296" rx="10" ry="15" transform="rotate(-30 260 296)"/>
+      <ellipse cx="425" cy="324" rx="10" ry="15" transform="rotate(20 425 324)"/>
+      <ellipse cx="340" cy="476" rx="9" ry="13" transform="rotate(10 340 476)"/>
+      <ellipse cx="424" cy="556" rx="9" ry="13" transform="rotate(-15 424 556)"/>
+      <ellipse cx="320" cy="592" rx="8" ry="12" transform="rotate(25 320 592)"/>
+      <ellipse cx="196" cy="560" rx="8" ry="12" transform="rotate(40 196 560)"/>
+      <ellipse cx="318" cy="314" rx="8" ry="12" transform="rotate(-10 318 314)"/>
+    </g>
+    <g opacity=".5">
+      <ellipse cx="120" cy="200" rx="6" ry="9" transform="rotate(10 120 200)"/>
+      <ellipse cx="470" cy="430" rx="6" ry="9" transform="rotate(-20 470 430)"/>
+      <ellipse cx="90" cy="420" rx="5" ry="8" transform="rotate(30 90 420)"/>
+      <ellipse cx="560" cy="250" rx="5" ry="8" transform="rotate(15 560 250)"/>
+    </g>
+  </svg>
+
+  <svg class="bg-scene bg-stars" viewBox="0 0 1200 420" preserveAspectRatio="xMidYMin slice" fill="none" stroke="currentColor">
+    <circle cx="1050" cy="90" r="54" fill="rgba(255,255,255,.12)" stroke="rgba(255,255,255,.5)"/>
+    <circle cx="1050" cy="90" r="8" fill="currentColor"/>
+    <path d="M1038 82 q 12 8 0 16 q -12 -8 0 -16" stroke-width="1.6" opacity=".6"/>
+    <g fill="currentColor" opacity=".85">
+      <circle cx="120" cy="60" r="2.4"/><circle cx="260" cy="140" r="1.8"/><circle cx="400" cy="50" r="2.8"/>
+      <circle cx="540" cy="120" r="2"/><circle cx="680" cy="40" r="2.4"/><circle cx="820" cy="160" r="1.8"/>
+      <circle cx="180" cy="260" r="1.6"/><circle cx="330" cy="300" r="2"/><circle cx="470" cy="240" r="1.8"/>
+      <circle cx="620" cy="290" r="2.4"/><circle cx="760" cy="320" r="1.6"/><circle cx="900" cy="250" r="2"/>
+      <circle cx="980" cy="180" r="1.8"/><circle cx="1130" cy="220" r="2.2"/><circle cx="60" cy="180" r="1.6"/>
+      <circle cx="1140" cy="40" r="1.8"/><circle cx="880" cy="40" r="2"/>
+    </g>
+    <path d="M240 60l6 14 15 2-11 10 3 15-13-8-13 8 3-15-11-10 15-2z" fill="currentColor" opacity=".5"/>
+    <path d="M700 90l5 12 13 2-9 9 2 13-11-7-11 7 2-13-9-9 13-2z" fill="currentColor" opacity=".4"/>
+    <path d="M980 300l4 9 10 1.5-7 6 2 9-9-5-9 5 2-9-7-6 10-1.5z" fill="currentColor" opacity=".35"/>
+  </svg>
+
   <div id="wallpaper"></div>
   <canvas id="particles"></canvas>
 </div>
@@ -604,6 +740,14 @@ select.input{appearance:none;background-image:linear-gradient(45deg,transparent 
       <button class="nav-item" data-screen="messenger">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
         <span data-i18n="navMessenger">Мессенджер</span>
+      </button>
+      <button class="nav-item" data-screen="news">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 8h10M7 12h10M7 16h6"/></svg>
+        <span data-i18n="navNews">Новости</span>
+      </button>
+      <button class="nav-item" data-screen="seirichik">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="9" r="3.2"/><circle cx="15" cy="9" r="3.2"/><path d="M12 13.4c1.5 0 2.8.8 3.5 2-1 .8-2.2 1.2-3.5 1.2s-2.5-.4-3.5-1.2c.7-1.2 2-2 3.5-2z"/></svg>
+        <span data-i18n="navSer">Серийчик</span>
       </button>
     </nav>
     <div class="sidebar-foot">
@@ -818,6 +962,20 @@ select.input{appearance:none;background-image:linear-gradient(45deg,transparent 
                 </div>
                 <div class="set-row">
                   <div>
+                    <div class="set-label" data-i18n="bgGallery">Сцены</div>
+                    <div class="set-hint" data-i18n="bgGalleryHint">5 встроенных сцен для фона</div>
+                  </div>
+                  <div class="scene-gallery" id="bgSceneGallery"></div>
+                </div>
+                <div class="set-row">
+                  <div>
+                    <div class="set-label" data-i18n="fontGallery">Стиль шрифта</div>
+                    <div class="set-hint" data-i18n="fontGalleryHint">5 встроенных стилей + свой TTF/OTF</div>
+                  </div>
+                  <div class="scene-gallery" id="fontStyleGallery"></div>
+                </div>
+                <div class="set-row">
+                  <div>
                     <div class="set-label" data-i18n="fontUpload">Свой шрифт</div>
                     <div class="set-hint">TTF / OTF</div>
                   </div>
@@ -951,12 +1109,9 @@ select.input{appearance:none;background-image:linear-gradient(45deg,transparent 
               <div class="mc-label">MESSENGER</div>
               <h3 data-i18n="tgLoginTitle">Вход в Telegram</h3>
               <p class="screen-desc" data-i18n="tgLoginDesc">Номер телефона + код из Telegram. Всё хранится только локально.</p>
-              <div class="field-label">api_id <span style="text-transform:none;letter-spacing:0">(<a data-ext="https://my.telegram.org/apps" style="color:var(--lav)">my.telegram.org</a>)</span></div>
-              <input class="input" id="tgApiId" placeholder="12345678" autocomplete="off" spellcheck="false">
-              <div class="field-label">api_hash</div>
-              <input class="input" id="tgApiHash" placeholder="hex-строка 32 символа" autocomplete="off" spellcheck="false">
               <div class="field-label" data-i18n="tgPhone">Телефон</div>
-              <input class="input" id="tgPhone" placeholder="+7 900 000-00-00" autocomplete="off" spellcheck="false">
+              <input class="input" id="tgPhone" placeholder="+7 900 000-00-00" autocomplete="off" spellcheck="false" inputmode="tel">
+              <div class="import-hint" data-i18n="tgNeedCreds">Введи телефон — код придёт в Telegram, затем пароль, если включён 2FA.</div>
               <div id="tgCodeWrap" hidden>
                 <div class="field-label" data-i18n="tgCode">Код из Telegram</div>
                 <input class="input" id="tgCode" placeholder="12345" autocomplete="off" inputmode="numeric" spellcheck="false">
@@ -1015,11 +1170,22 @@ select.input{appearance:none;background-image:linear-gradient(45deg,transparent 
               <div class="msgr-chat-body" id="chatBody">
                 <div class="empty-state" data-i18n="tgChooseChat">Выберите чат слева</div>
               </div>
-              <div class="msgr-chat-input">
-                <button class="btn ghost" id="chatAttachBtn" title="Файл">📎</button>
-                <input type="file" id="chatFile" hidden>
-                <textarea class="input" id="chatInput" placeholder="Сообщение…" autocomplete="off"></textarea>
-                <button class="btn primary" id="chatSendBtn" title="Отправить">➤</button>
+              <div class="msgr-composer">
+                <div class="msgr-chat-input">
+                  <button class="btn ghost" id="chatAttachBtn" title="Файл">📎</button>
+                  <input type="file" id="chatFile" hidden>
+                  <textarea class="input" id="chatInput" placeholder="Сообщение…" autocomplete="off"></textarea>
+                  <button class="btn ghost" id="chatStickerBtn" title="Стикеры и GIF">🙂</button>
+                  <button class="btn primary" id="chatSendBtn" title="Отправить">➤</button>
+                </div>
+                <div class="msgr-picker" id="chatPicker" hidden>
+                  <div class="picker-head">
+                    <button class="picker-tab on" data-tab="sticker" data-i18n="tgMediaSticker">Стикер</button>
+                    <button class="picker-tab" data-tab="gif" data-i18n="tgMediaGif">GIF</button>
+                    <button class="picker-x" id="pickerClose">✕</button>
+                  </div>
+                  <div class="picker-body" id="pickerBody"></div>
+                </div>
               </div>
             </div>
           </div>
@@ -1027,8 +1193,46 @@ select.input{appearance:none;background-image:linear-gradient(45deg,transparent 
         </div>
       </section>
 
+      <section class="screen" data-screen="news">
+        <h2 class="screen-title" data-i18n="navNews">Новости</h2>
+        <p class="screen-desc" data-i18n="newsDesc">Последний пост из канала @mackkill.</p>
+        <div class="news-screen">
+          <div class="glass news-card">
+            <div class="news-card-head">
+              <div class="news-card-badge">mackkill</div>
+              <div class="news-card-date" id="newsDate">—</div>
+            </div>
+            <div class="news-card-body" id="newsBody"><div class="empty-state" data-i18n="newsEmpty">Пока нет новостей</div></div>
+            <div class="news-card-foot">
+              <button class="btn ghost small" id="newsRefreshBtn" data-i18n="newsRefresh">Обновить</button>
+              <button class="btn ghost small" id="newsOpenBtn" data-i18n="openChannel">Открыть канал</button>
+              <button class="btn ghost small" id="newsReadBtn" data-i18n="newsRead">Прочитано</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen" data-screen="seirichik">
+        <h2 class="screen-title" data-i18n="navSer">Серийчик</h2>
+        <p class="screen-desc" data-i18n="serDesc">Твоя аниме-девушка растёт от VPN-трафика.</p>
+        <div id="serRoot"></div>
+      </section>
+
     </div>
   </main>
+</div>
+
+<div class="welcome-overlay" id="welcomeModal" hidden>
+  <div class="welcome-card glass">
+    <div class="welcome-logo"><div class="logo-mark">M</div></div>
+    <h2 class="welcome-title" id="welcomeTitle">Привет!</h2>
+    <p class="welcome-desc" id="welcomeDesc"></p>
+    <div class="welcome-steps" id="welcomeSteps"><i class="on"></i><i></i><i></i></div>
+    <div class="welcome-actions">
+      <button class="btn ghost small" id="welcomeSkip" data-i18n="welcomeSkip">Пропустить</button>
+      <button class="btn primary" id="welcomeNext" data-i18n="welcomeNext">Далее</button>
+    </div>
+  </div>
 </div>
 
 <div id="newsBanner">
@@ -1094,6 +1298,10 @@ const I18N = {
     theme:'Тема', themeAuto:'Авто', themeDark:'Тёмная', themeLight:'Светлая', lang:'Язык',
     wallpaper:'Фоновое изображение', wallpaperHint:'Тёмная картинка — за стеклом панелей',
     wallpaperUpload:'Загрузить', wallpaperRemove:'Убрать', fontRemove:'Сбросить', particles:'Частицы на фоне',
+    bgGallery:'Сцены', bgGalleryHint:'5 встроенных сцен для фона',
+    fontGallery:'Стиль шрифта', fontGalleryHint:'5 встроенных стилей + свой TTF/OTF',
+    bgSceneroof:'Крыши', bgScenearch:'Арка', bgScenestreet:'Улица', bgScenesakura:'Сакура', bgScenestars:'Звёзды',
+    fontStylemanrope:'Manrope', fontStylesegui:'Segoe UI', fontStyleserif:'С засечками', fontStylemono:'Моно', fontStylehand:'Ручка',
     socksPort:'SOCKS-порт', httpPort:'HTTP-порт', tunDns:'DNS туннеля', xrayPath:'Путь к xray.exe',
     highPriority:'Высокий приоритет', minimizeToTray:'Сворачивать в трей', startMinimized:'Запуск свёрнутым',
     newsOff:'Уведомления о новостях', resetTutorial:'Обучение', showAgain:'Показать заново',
@@ -1115,13 +1323,27 @@ const I18N = {
     pingDone:'Пинг завершён', connectErr:'Ошибка:', denied:'Доступ отклонён',
     offline:'OFFLINE', connected:'ONLINE',
     navMessenger:'Мессенджер',
+    navNews:'Новости', navSer:'Серийчик', navSeirichik:'Серийчик',
+    newsDesc:'Последний пост из канала @mackkill.', newsEmpty:'Пока нет новостей',
+    newsRefresh:'Обновить', openChannel:'Открыть канал', newsRead:'Прочитано',
+    serDesc:'Твоя аниме-девушка растёт от VPN-трафика.',
+    serFeed:'Покормить · 50 MB', serXp:'Опыт', serFull:'Сытость', serBank:'Запас трафика',
+    serFed:'скормлено', serHint:'Трафик через VPN превращается в еду для Серийчик. Подключись и качай!',
+    serMoodHappy:'В отличном настроении', serMoodNeutral:'Спокойна', serMoodHungry:'Проголодалась!',
+    serHungry:'Покорми меня!', serFeedOk:'Ням! Спасибо за трафик', serLevelUp:'Уровень повышен!',
+    serNotEnough:'Мало трафика в запасе — подключись и подкачай', serNameEmpty:'Введи имя',
+    gifHint:'Вставь прямую ссылку на GIF (например, media.tenor.com) — файл скачается и уйдёт в чат как анимация.',
+    welcome1Title:'Привет, Малыш!', welcome1Desc:'Это MimiBox — ночной VPN с серверами, маршрутами и встроенным мессенджером. Подключи подписку, выбери сервер и жми CONNECT.',
+    welcome2Title:'Как это работает', welcome2Desc:'«Серверы» — подписка или ссылки. «Маршруты» — какие сайты идут мимо VPN. «Статистика» — трафик и лимиты. «Серийчик» — аниме-девушка, которую кормит твой трафик.',
+    welcome3Title:'Мессенджер встроен', welcome3Desc:'Во вкладке «Мессенджер» вход как в Telegram: номер → код из SMS → пароль 2FA. Плагины как в ExtraGram — папка plugins в данных.',
+    welcomeNext:'Далее', welcomeStart:'Поехали', welcomeSkip:'Пропустить', welcomeDone:'Добро пожаловать!',
     tgLoginTitle:'Вход в Telegram', tgLoginDesc:'Номер телефона + код из Telegram. Всё хранится только локально.',
     tgPhone:'Телефон', tgCode:'Код из Telegram', tgPass:'Облачный пароль (2FA)',
     tgGetCode:'Получить код', tgLoginBtn:'Войти', tgCancel:'Отмена', tgLogout:'Выйти',
     tgRefresh:'Обновить', tgChooseChat:'Выберите чат слева', tgSearch:'Поиск…',
     tgPlugins:'Плагины', tgPluginsHint:'Как в ExtraGram: положи .py в папку plugins — команды и обработчики заработают.',
     tgPluginsFolder:'Папка', tgPluginsReload:'Перезагрузить', tgPluginsFolderHint:'Папка данных\\plugins\\*.py',
-    tgNeedCreds:'Укажи api_id и api_hash из my.telegram.org, потом телефон — и код придёт в Telegram.',
+    tgNeedCreds:'Введи телефон — код придёт в Telegram, затем пароль, если включён 2FA.',
     tgSending:'Отправка…', tgLoadingChat:'Загрузка…', tgErrOp:'Ошибка:',
     tgLoggedOut:'Вышли из аккаунта', tgSent:'Отправлено',
     tgMediaPhoto:'Фото', tgMediaGif:'GIF', tgMediaSticker:'Стикер', tgMediaVoice:'Голосовое',
@@ -1160,6 +1382,10 @@ const I18N = {
     theme:'Theme', themeAuto:'Auto', themeDark:'Dark', themeLight:'Light', lang:'Language',
     wallpaper:'Background image', wallpaperHint:'Dark image behind the glass panels',
     wallpaperUpload:'Upload', wallpaperRemove:'Remove', fontRemove:'Reset', particles:'Background particles',
+    bgGallery:'Scenes', bgGalleryHint:'5 built-in background scenes',
+    fontGallery:'Font style', fontGalleryHint:'5 built-in styles + custom TTF/OTF',
+    bgSceneroof:'Rooftop', bgScenearch:'Arch', bgScenestreet:'Street', bgScenesakura:'Sakura', bgScenestars:'Stars',
+    fontStylemanrope:'Manrope', fontStylesegui:'Segoe UI', fontStyleserif:'Serif', fontStylemono:'Mono', fontStylehand:'Hand',
     socksPort:'SOCKS port', httpPort:'HTTP port', tunDns:'Tunnel DNS', xrayPath:'xray.exe path',
     highPriority:'High priority', minimizeToTray:'Minimize to tray', startMinimized:'Start minimized',
     newsOff:'News notifications', resetTutorial:'Tutorial', showAgain:'Show again',
@@ -1181,6 +1407,20 @@ const I18N = {
     pingDone:'Ping finished', connectErr:'Error:', denied:'Access denied',
     offline:'OFFLINE', connected:'ONLINE',
     navMessenger:'Messenger',
+    navNews:'News', navSer:'Mascot', navSeirichik:'Mascot',
+    newsDesc:'Latest post from the @mackkill channel.', newsEmpty:'No news yet',
+    newsRefresh:'Refresh', openChannel:'Open channel', newsRead:'Mark as read',
+    serDesc:'Your anime girl grows from VPN traffic.',
+    serFeed:'Feed · 50 MB', serXp:'XP', serFull:'Fullness', serBank:'Traffic bank',
+    serFed:'fed', serHint:'VPN traffic turns into food for your mascot. Connect and download!',
+    serMoodHappy:'In a great mood', serMoodNeutral:'Calm', serMoodHungry:'Hungry!',
+    serHungry:'Feed me!', serFeedOk:'Yum! Thanks for the traffic', serLevelUp:'Level up!',
+    serNotEnough:'Not enough traffic saved — connect and download', serNameEmpty:'Enter a name',
+    gifHint:'Paste a direct GIF link (e.g. media.tenor.com) — the file will be downloaded and sent as an animation.',
+    welcome1Title:'Hey there!', welcome1Desc:'This is MimiBox — a night-time VPN with servers, routes and a built-in messenger. Add a subscription, pick a server and hit CONNECT.',
+    welcome2Title:'How it works', welcome2Desc:'"Servers" — subscription or links. "Routes" — which sites bypass the VPN. "Statistics" — traffic and limits. "Mascot" — an anime girl fed by your traffic.',
+    welcome3Title:'Messenger built in', welcome3Desc:'In the "Messenger" tab sign in like in Telegram: phone → SMS code → 2FA password. Plugins like in ExtraGram — the plugins folder in your data.',
+    welcomeNext:'Next', welcomeStart:"Let's go", welcomeSkip:'Skip', welcomeDone:'Welcome!',
     tgLoginTitle:'Sign in to Telegram', tgLoginDesc:'Phone number + code from Telegram. Everything is stored locally.',
     tgPhone:'Phone', tgCode:'Code from Telegram', tgPass:'Cloud password (2FA)',
     tgGetCode:'Get code', tgLoginBtn:'Sign in', tgCancel:'Cancel', tgLogout:'Log out',
@@ -1344,8 +1584,9 @@ function renderStats(){
   bar.classList.toggle('warn', sub.percent != null && sub.percent >= 80 && sub.percent < 100);
   bar.classList.toggle('over', !!sub.expired);
   $('#subUsed').textContent = sub.known ? fmtBytes(sub.used) : '—';
-  $('#subLeft').textContent = sub.known ? (sub.left == null ? t('subUnlimited') : fmtBytes(sub.left)) : '—';
-  $('#subTotal').textContent = sub.known ? (sub.total == null ? t('subUnlimited') : fmtBytes(sub.total)) : '—';
+  const unlimited = sub.known && sub.total == null;
+  $('#subLeft').textContent = unlimited ? '—' : (sub.known ? (sub.left == null ? t('subUnlimited') : fmtBytes(sub.left)) : '—');
+  $('#subTotal').textContent = unlimited ? t('subUnlimited') : (sub.known ? (sub.total == null ? t('subUnlimited') : fmtBytes(sub.total)) : '—');
   const ex = $('#subExpire');
   ex.textContent = sub.known ? (sub.expire ? fmtDate(sub.expire) : t('subForever')) : '—';
   ex.className = 'v' + (sub.expired ? ' bad' : (sub.days_left != null && sub.days_left <= 3 ? ' warn' : ''));
@@ -1377,6 +1618,8 @@ function renderSettings(){
   $('#pfXray').className = 'v ' + (S.xray_found ? 'good' : 'bad');
   $('#pfTun').className = 'v ' + (S.tun_found ? 'good' : 'bad');
   $('#pfAdmin').className = 'v ' + (S.is_admin ? 'good' : 'bad');
+  renderSceneGallery();
+  renderFontGallery();
 }
 
 function renderProfile(){
@@ -1430,6 +1673,8 @@ function switchScreen(name){
   applyI18n();
   if (name === 'settings' || name === 'profile' || name === 'routes' || name === 'stats') refreshFromBackend();
   if (name === 'messenger') tgSync();
+  if (name === 'news') renderNews();
+  if (name === 'seirichik') renderSer();
 }
 
 async function refreshFromBackend(){
@@ -1591,18 +1836,91 @@ async function uploadBg(){
     const b64 = String(rd.result).split(',', 2)[1];
     try {
       const r = await api().upload_background(b64);
-      if (r && r.ok) { applyState(r); applyBg('data:image/png;base64,' + b64); renderAll(); toast(t('savedToast'), 'ok'); }
+      if (r && r.ok) {
+        await api().save_settings({bg_scene: ''});
+        if (S) S.settings.bg_scene = '';
+        applyState(r); applyBg('data:image/png;base64,' + b64); applyScene(''); renderAll(); toast(t('savedToast'), 'ok');
+      }
     } catch(e){ toast(t('savedErr') + ' ' + e, 'err'); }
   };
   rd.readAsDataURL(f);
 }
 async function clearBg(){
-  try { const r = await api().remove_background(); if (r) { applyState(r); applyBg(null); renderAll(); } } catch(e){}
+  try {
+    const r = await api().remove_background();
+    if (r) { await api().save_settings({bg_scene: ''}); if (S) S.settings.bg_scene = ''; applyState(r); applyBg(null); applyScene(''); renderAll(); }
+  } catch(e){}
 }
 function applyBg(dataUrl){
   const w = $('#wallpaper');
   if (dataUrl) { w.style.backgroundImage = 'url(' + dataUrl + ')'; w.classList.add('on'); }
   else { w.style.backgroundImage = ''; w.classList.remove('on'); }
+}
+
+/* ---------- сцены и стили шрифтов ---------- */
+const BG_SCENES = [
+  {id:'rooftop', icon:'🏙', name:'roof'},
+  {id:'arch', icon:'⛩', name:'arch'},
+  {id:'street', icon:'🌃', name:'street'},
+  {id:'sakura', icon:'🌸', name:'sakura'},
+  {id:'stars', icon:'🌙', name:'stars'}
+];
+const FONT_STYLES = [
+  {id:'manrope', name:'manrope', css:"'Manrope',system-ui,sans-serif"},
+  {id:'segui', name:'segui', css:"'Segoe UI',system-ui,sans-serif"},
+  {id:'serif', name:'serif', css:"Georgia,'Times New Roman',serif"},
+  {id:'mono', name:'mono', css:"'Cascadia Mono',Consolas,monospace"},
+  {id:'hand', name:'hand', css:"'Segoe Print','Comic Sans MS',cursive"}
+];
+function applyScene(scene){
+  if (scene) document.body.dataset.scene = scene;
+  else delete document.body.dataset.scene;
+}
+function applyFontStyle(id){
+  const st = (FONT_STYLES.find(f => f.id === id) || FONT_STYLES[0]);
+  document.body.style.fontFamily = st.css;
+}
+function renderSceneGallery(){
+  const g = $('#bgSceneGallery');
+  if (!g) return;
+  const cur = S && S.settings.bg_scene ? S.settings.bg_scene : '';
+  g.innerHTML = BG_SCENES.map(s =>
+    '<div class="scene-item' + (s.id === cur ? ' on' : '') + '" data-scene="' + s.id + '" title="' + esc(t('bgScene' + s.name)) + '">' +
+      '<div class="si-icon">' + s.icon + '</div>' +
+      '<div class="si-name">' + esc(t('bgScene' + s.name)) + '</div>' +
+    '</div>').join('');
+}
+function renderFontGallery(){
+  const g = $('#fontStyleGallery');
+  if (!g) return;
+  const cur = S && S.settings.font_style ? S.settings.font_style : (S && S.settings.has_custom_font ? 'custom' : 'manrope');
+  g.innerHTML = FONT_STYLES.map(s =>
+    '<div class="scene-item font-item' + (s.id === cur ? ' on' : '') + '" data-font="' + s.id + '" title="' + esc(t('fontStyle' + s.name)) + '">' +
+      '<div class="si-prev" style="font-family:' + s.css + '">AaБб</div>' +
+      '<div class="si-name">' + esc(t('fontStyle' + s.name)) + '</div>' +
+    '</div>').join('');
+}
+async function pickScene(id){
+  if (!api()) return;
+  try {
+    await api().save_settings({bg_scene: id});
+    if (S) S.settings.bg_scene = id;
+    applyScene(id);
+    applyBg(null);
+    await api().remove_background();
+    renderSceneGallery();
+    toast(t('savedToast'), 'ok');
+  } catch(e){ toast(t('savedErr') + ' ' + e, 'err'); }
+}
+async function pickFontStyle(id){
+  if (!api()) return;
+  try {
+    await api().save_settings({font_style: id});
+    if (S) S.settings.font_style = id;
+    applyFontStyle(id);
+    renderFontGallery();
+    toast(t('savedToast'), 'ok');
+  } catch(e){ toast(t('savedErr') + ' ' + e, 'err'); }
 }
 
 async function uploadFont(){
@@ -1619,7 +1937,14 @@ async function uploadFont(){
   rd.readAsDataURL(f);
 }
 async function clearFont(){
-  try { const r = await api().remove_font(); if (r) { applyState(r); document.body.style.fontFamily = ''; renderAll(); } } catch(e){}
+  try {
+    const r = await api().remove_font();
+    if (r) {
+      await api().save_settings({font_style: 'manrope'});
+      if (S) { S.settings.font_style = 'manrope'; S.settings.has_custom_font = false; }
+      applyState(r); applyFontStyle('manrope'); renderAll(); toast(t('savedToast'), 'ok');
+    }
+  } catch(e){}
 }
 function applyCustomFont(b64){
   if (!b64) return;
@@ -1995,12 +2320,10 @@ async function tgSync(){
 async function tgLoginStart(){
   if (!api()) return;
   const phone = $('#tgPhone').value.trim();
-  const apiId = $('#tgApiId').value.trim();
-  const apiHash = $('#tgApiHash').value.trim();
   if (!phone) { tgLoginHint(t('tgBadPhone'), 'err'); return; }
   tgLoginHint(t('tgSending'), '');
   try {
-    const r = await api().tg_login(phone, apiId, apiHash);
+    const r = await api().tg_login(phone);
     if (r && r.ok === false) tgLoginHint(t('tgErrOp'), 'err');
   } catch(e){ tgLoginHint(t('tgErrOp') + ' ' + e, 'err'); }
 }
@@ -2075,6 +2398,44 @@ function autoGrowInput(){
   ta.style.height = 'auto';
   ta.style.height = Math.min(140, Math.max(42, ta.scrollHeight)) + 'px';
 }
+
+/* ---------- стикеры / GIF ---------- */
+const STICKER_EMOJI = ['❤️','😀','😂','😍','🥰','😎','🤯','🤗','🖤','🌹','🔥','👍','✨','💀','👾','🎉','😈','👀','🙏','💜','😺','🍕','⚡','🫶','🥺','🫠','😤','🤝','🎮','💎','🚀','🌈'];
+function togglePicker(tab){
+  const p = $('#chatPicker');
+  p.hidden = !p.hidden;
+  if (p.hidden) return;
+  showPickerTab(tab || 'sticker');
+}
+function showPickerTab(tab){
+  $$('#chatPicker .picker-tab').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
+  const body = $('#pickerBody');
+  if (tab === 'gif') {
+    body.innerHTML =
+      '<div class="gif-row"><input class="input" id="gifUrl" placeholder="https://…gif" autocomplete="off" spellcheck="false">' +
+      '<button class="btn primary small" id="gifSendBtn">➤</button></div>' +
+      '<div class="picker-note">' + esc(t('gifHint')) + '</div>';
+    $('#gifSendBtn').addEventListener('click', gifSend);
+    $('#gifUrl').addEventListener('keydown', e => { if (e.key === 'Enter') gifSend(); });
+  } else {
+    body.innerHTML = '<div class="sticker-grid">' + STICKER_EMOJI.map(e =>
+      '<div class="sticker-cell" data-emoji="' + esc(e) + '">' + e + '</div>').join('') + '</div>';
+  }
+}
+async function stickerSend(emoji){
+  if (!TG.active || !api()) return;
+  try { await api().tg_send(TG.active, emoji); } catch(e){ toast(t('tgErrOp') + ' ' + e, 'err'); }
+}
+async function gifSend(){
+  const url = $('#gifUrl').value.trim();
+  if (!url || !TG.active || !api()) return;
+  toast(t('tgSending'), 'accent');
+  try {
+    const r = await api().tg_send_url(TG.active, url);
+    if (r && r.error) toast(t('tgErrOp') + ' ' + r.error, 'err');
+  } catch(e){ toast(t('tgErrOp') + ' ' + e, 'err'); }
+  $('#gifUrl').value = '';
+}
 async function openPlugins(){
   $('#pluginModal').hidden = false;
   try { const r = await api().tg_plugins_list(); if (r) renderPluginList(r.plugins); } catch(e){}
@@ -2121,6 +2482,14 @@ function initMsgrEvents(){
   $('#chatInput').addEventListener('input', autoGrowInput);
   $('#chatAttachBtn').addEventListener('click', () => $('#chatFile').click());
   $('#chatFile').addEventListener('change', tgSendFile);
+  $('#chatStickerBtn').addEventListener('click', () => togglePicker());
+  $('#pickerClose').addEventListener('click', () => { $('#chatPicker').hidden = true; });
+  $('#chatPicker').addEventListener('click', e => {
+    const tab = e.target.closest('[data-tab]');
+    if (tab) { showPickerTab(tab.dataset.tab); return; }
+    const st = e.target.closest('[data-emoji]');
+    if (st) stickerSend(st.dataset.emoji);
+  });
   $('#msgrLogoutBtn').addEventListener('click', tgLogout);
   $('#msgrPluginsBtn').addEventListener('click', openPlugins);
   $('#pluginModalClose').addEventListener('click', () => $('#pluginModal').hidden = true);
@@ -2142,6 +2511,7 @@ function initMsgrEvents(){
 
 /* ============ news ============ */
 let newsData = null;
+const NEWS_CHANNEL = 'mackkill';
 async function checkNews(){
   if (!api()) return;
   if (S && S.settings.news_off) return;
@@ -2158,11 +2528,160 @@ async function checkNews(){
     }
   } catch(e){}
 }
+async function renderNews(){
+  const body = $('#newsBody');
+  if (!body) return;
+  if (!api()) return;
+  body.innerHTML = '<div class="empty-state">' + esc(t('tgLoadingChat')) + '</div>';
+  try {
+    const r = await api().get_news();
+    if (!r || !r.ok) { body.innerHTML = '<div class="empty-state">' + esc(t('newsEmpty')) + '</div>'; return; }
+    newsData = r;
+    $('#newsDate').textContent = r.date || '';
+    if (r.html) {
+      const holder = document.createElement('div');
+      holder.innerHTML = r.html;
+      const txt = (holder.textContent || '').replace(/\s+/g, ' ').trim();
+      body.innerHTML = '<div class="news-body-rich">' + r.html + '</div>';
+      if (!r.html.replace(/<[^>]*>/g, '').trim()) body.innerHTML = '<div class="empty-state">' + esc(txt) + '</div>';
+    } else {
+      body.innerHTML = '<div class="empty-state">' + esc(t('newsEmpty')) + '</div>';
+    }
+    const read = $('#newsReadBtn');
+    if (read) read.textContent = t('newsRead') + (r.post_id === (S && S.settings.last_news_id) ? ' ✓' : '');
+  } catch(e){ body.innerHTML = '<div class="empty-state">' + esc(String(e)) + '</div>'; }
+}
 async function closeNews(){
   $('#newsBanner').classList.remove('show');
   if (!api() || !newsData) return;
   try { await api().save_settings({last_news_id: newsData.post_id}); } catch(e){}
   newsData = null;
+}
+
+/* ============ Серийчик ============ */
+const SER_FEED_MB = 50;
+function serSvg(mood){
+  const eyes = mood === 'happy'
+    ? '<g stroke="#3a2440" stroke-width="3.2" fill="none" stroke-linecap="round"><path d="M74 112q7-9 14 0"/><path d="M112 112q7-9 14 0"/></g>'
+    : mood === 'hungry'
+      ? '<g><ellipse cx="81" cy="113" rx="6.5" ry="6.5" fill="#3a2440"/><ellipse cx="119" cy="113" rx="6.5" ry="6.5" fill="#3a2440"/><path d="M82 122l4 2M118 122l4 2" stroke="#9fd8ff" stroke-width="2.4" stroke-linecap="round"/></g>'
+      : '<g><ellipse cx="81" cy="112" rx="7" ry="8.6" fill="#3a2440"/><ellipse cx="81" cy="109" rx="2.7" ry="3.1" fill="#fff"/><ellipse cx="119" cy="112" rx="7" ry="8.6" fill="#3a2440"/><ellipse cx="119" cy="109" rx="2.7" ry="3.1" fill="#fff"/></g>';
+  const mouth = mood === 'happy'
+    ? '<path d="M93 131q7 8 14 0" stroke="#e25b78" stroke-width="3" fill="none" stroke-linecap="round"/>'
+    : mood === 'hungry'
+      ? '<path d="M94 135q6-5 12 0" stroke="#e25b78" stroke-width="3" fill="none" stroke-linecap="round"/>'
+      : '<path d="M93 133q7 4 14 0" stroke="#e25b78" stroke-width="3" fill="none" stroke-linecap="round"/>';
+  return '<svg viewBox="0 0 200 250" class="ser-svg" aria-hidden="true">' +
+    '<defs>' +
+      '<linearGradient id="serHairG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="var(--ser-hairA)"/><stop offset="1" stop-color="var(--ser-hairB)"/></linearGradient>' +
+      '<radialGradient id="serGlowG" cx="50%" cy="45%" r="60%"><stop offset="0" stop-color="var(--ser-glow)" stop-opacity=".55"/><stop offset="1" stop-color="var(--ser-glow)" stop-opacity="0"/></radialGradient>' +
+    '</defs>' +
+    '<circle cx="100" cy="120" r="112" fill="url(#serGlowG)"/>' +
+    '<path d="M56 84 C 36 150 46 200 76 214 L 82 196 C 60 178 56 130 64 92 Z" fill="url(#serHairG)"/>' +
+    '<path d="M144 84 C 164 150 154 200 124 214 L 118 196 C 140 178 144 130 136 92 Z" fill="url(#serHairG)"/>' +
+    '<path d="M52 96 C 50 44 150 44 148 96 C 148 78 140 64 130 64 C 120 64 116 74 108 74 C 100 74 96 62 84 62 C 70 62 58 76 56 92 Z" fill="url(#serHairG)"/>' +
+    '<ellipse cx="100" cy="120" rx="42" ry="47" fill="var(--ser-skin)"/>' +
+    eyes +
+    '<g fill="var(--ser-blush)" opacity=".65"><ellipse cx="70" cy="125" rx="8" ry="4.4"/><ellipse cx="130" cy="125" rx="8" ry="4.4"/></g>' +
+    mouth +
+    '<path d="M100 152 C 88 152 78 162 78 176 L 122 176 C 122 162 112 152 100 152 Z" fill="var(--ser-dressA)"/>' +
+    '<path d="M92 152 L 100 168 L 108 152 Z" fill="var(--ser-dressB)"/>' +
+    '<path d="M56 90 C 54 118 64 138 78 146 C 69 130 66 108 70 92 Z" fill="url(#serHairG)"/>' +
+    '<path d="M144 90 C 146 118 136 138 122 146 C 131 130 134 108 130 92 Z" fill="url(#serHairG)"/>' +
+    (mood === 'hungry' ? '<path d="M171 50q8 5 0 10q-8-5 0-10z" fill="#9fd8ff"/>' : '') +
+    '</svg>';
+}
+async function renderSer(){
+  const root = $('#serRoot');
+  if (!root) return;
+  if (!api()) { root.innerHTML = ''; return; }
+  let st = S;
+  try { const r = await api().get_state(); if (r) { applyState(r); st = r; } } catch(e){}
+  const ser = (st && st.ser) || {};
+  const pct = ser.xp_next ? Math.min(100, Math.round((ser.xp || 0) * 100 / ser.xp_next)) : 0;
+  const hunger = ser.hunger != null ? ser.hunger : 100;
+  const mood = ser.mood || 'neutral';
+  const bankMB = Math.floor((ser.bank || 0) / (1024 * 1024));
+  const fedMB = ser.xp || 0;
+  const moodKey = mood === 'hungry' ? 'serMoodHungry' : (mood === 'happy' ? 'serMoodHappy' : 'serMoodNeutral');
+  const hungryTxt = hunger <= 25 ? t('serHungry') : '';
+  root.innerHTML =
+    '<div class="ser-wrap ser-mood-' + esc(mood) + '">' +
+      '<div class="glass ser-card">' +
+        '<div class="ser-stage">' + serSvg(mood) +
+          '<div class="ser-level-badge">Lv ' + (ser.level || 1) + '</div>' +
+        '</div>' +
+        '<div class="ser-info">' +
+          '<div class="ser-name-row"><input class="input ser-name-input" id="serName" maxlength="24" value="' + esc(ser.name || 'Серийчик') + '"><button class="btn ghost small" id="serNameBtn">OK</button></div>' +
+          '<div class="ser-mood">' + t(moodKey) + (hungryTxt ? ' · ' + hungryTxt : '') + '</div>' +
+          '<div class="ser-bar"><div class="ser-bar-label"><span>' + t('serXp') + '</span><span>' + (ser.xp || 0) + ' / ' + (ser.xp_next || 100) + '</span></div><div class="ser-bar-track"><div class="ser-bar-fill xp" style="width:' + pct + '%"></div></div></div>' +
+          '<div class="ser-bar"><div class="ser-bar-label"><span>' + t('serFull') + '</span><span>' + hunger + '%</span></div><div class="ser-bar-track"><div class="ser-bar-fill hunger' + (hunger <= 25 ? ' warn' : '') + '" style="width:' + hunger + '%"></div></div></div>' +
+          '<div class="ser-bank">🖤 ' + t('serBank') + ': <b>' + bankMB + '</b> MB · ' + t('serFed') + ': <b>' + fedMB + '</b> MB</div>' +
+          '<div class="ser-hint">' + t('serHint') + '</div>' +
+          '<div class="ser-actions"><button class="btn primary" id="serFeedBtn">' + t('serFeed') + '</button></div>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  $('#serFeedBtn').addEventListener('click', serFeed);
+  $('#serNameBtn').addEventListener('click', serSetName);
+  $('#serName').addEventListener('keydown', e => { if (e.key === 'Enter') serSetName(); });
+}
+async function serFeed(){
+  if (!api()) return;
+  const oldLvl = S && S.ser ? S.ser.level : 1;
+  let r;
+  try { r = await api().ser_feed(SER_FEED_MB); } catch(e){ r = {error: String(e)}; }
+  if (r && r.error === 'not_enough') { toast(t('serNotEnough'), 'warn'); return; }
+  if (r && r.error) { toast(t('connectErr') + ' ' + r.error, 'err'); return; }
+  if (r && r.state) {
+    const up = !!(r.state.ser && r.state.ser.level > oldLvl);
+    applyState(r.state);
+    renderSer();
+    toast(up ? t('serLevelUp') + ' · Lv ' + r.state.ser.level : t('serFeedOk'), up ? 'accent' : 'ok');
+  }
+}
+async function serSetName(){
+  if (!api()) return;
+  const name = $('#serName').value.trim();
+  if (!name) { toast(t('serNameEmpty'), 'warn'); return; }
+  let r;
+  try { r = await api().ser_set_name(name); } catch(e){ r = {error: String(e)}; }
+  if (r && r.error) { toast(String(r.error), 'err'); return; }
+  if (r && r.state) { applyState(r); renderSer(); toast(t('savedToast'), 'ok'); }
+}
+
+/* ============ приветствие ============ */
+let welcomeStep = 0;
+const WELCOME_STEPS = [
+  {t:'welcome1Title', d:'welcome1Desc'},
+  {t:'welcome2Title', d:'welcome2Desc'},
+  {t:'welcome3Title', d:'welcome3Desc'}
+];
+function openWelcome(force){
+  if (!S) return;
+  if (!force && S.intro_done) return;
+  welcomeStep = 0;
+  $('#welcomeModal').hidden = false;
+  renderWelcomeStep();
+}
+function renderWelcomeStep(){
+  const s = WELCOME_STEPS[welcomeStep] || WELCOME_STEPS[0];
+  $('#welcomeTitle').textContent = t(s.t);
+  $('#welcomeDesc').textContent = t(s.d);
+  const dots = $('#welcomeSteps').children || [];
+  for (let i = 0; i < dots.length; i++) dots[i].classList.toggle('on', i === welcomeStep);
+  $('#welcomeNext').textContent = welcomeStep < WELCOME_STEPS.length - 1 ? t('welcomeNext') : t('welcomeStart');
+  $('#welcomeSkip').hidden = welcomeStep === WELCOME_STEPS.length - 1;
+}
+async function welcomeFinish(){
+  $('#welcomeModal').hidden = true;
+  if (S) S.intro_done = true;
+  if (api()) { try { await api().finish_intro(); } catch(e){} }
+  toast(t('welcomeDone'), 'accent');
+}
+async function welcomeNext(){
+  if (welcomeStep < WELCOME_STEPS.length - 1) { welcomeStep++; renderWelcomeStep(); return; }
+  welcomeFinish();
 }
 
 /* ============ particles ============ */
@@ -2323,12 +2842,22 @@ $('#saveSettingsBtn').addEventListener('click', saveSettingsForm);
 $('#bgPickBtn').addEventListener('click', () => $('#bgInput').click());
 $('#bgInput').addEventListener('change', uploadBg);
 $('#bgClearBtn').addEventListener('click', clearBg);
+$('#bgSceneGallery').addEventListener('click', e => {
+  const it = e.target.closest('[data-scene]');
+  if (it) pickScene(it.dataset.scene);
+});
+$('#fontStyleGallery').addEventListener('click', e => {
+  const it = e.target.closest('[data-font]');
+  if (it) pickFontStyle(it.dataset.font);
+});
 $('#fontPickBtn').addEventListener('click', () => $('#fontInput').click());
 $('#fontInput').addEventListener('change', uploadFont);
 $('#fontClearBtn').addEventListener('click', clearFont);
 
 $('#dataFolderBtn').addEventListener('click', async () => { if (api()) try { await api().open_data_folder(); } catch(e){} });
-$('#resetTutBtn').addEventListener('click', async () => { if (api()) { try { await api().reset_tutorial(); toast(t('savedToast'), 'ok'); } catch(e){} } });
+$('#resetTutBtn').addEventListener('click', async () => { if (api()) { try { await api().reset_tutorial(); toast(t('savedToast'), 'ok'); } catch(e){} } openWelcome(true); });
+$('#welcomeNext').addEventListener('click', welcomeNext);
+$('#welcomeSkip').addEventListener('click', welcomeFinish);
 
 $('#tgLinkBtn').addEventListener('click', linkTg);
 $('#tgUnlinkBtn').addEventListener('click', unlinkTg);
@@ -2338,8 +2867,11 @@ $('#ratingRow').addEventListener('click', e => {
   if (b) setRating(Number(b.dataset.r));
 });
 
-$('#nbOpen').addEventListener('click', () => { if (newsData && newsData.html) { const a = document.createElement('a'); a.href = '#'; a.dataset.ext = 'https://t.me/mimidevil'; openExt(a); } });
+$('#nbOpen').addEventListener('click', () => { const a = document.createElement('a'); a.dataset.ext = 'https://t.me/' + NEWS_CHANNEL; openExt(a); });
 $('#nbClose').addEventListener('click', closeNews);
+$('#newsRefreshBtn').addEventListener('click', renderNews);
+$('#newsOpenBtn').addEventListener('click', () => { const a = document.createElement('a'); a.dataset.ext = 'https://t.me/' + NEWS_CHANNEL; openExt(a); });
+$('#newsReadBtn').addEventListener('click', async () => { if (!api() || !newsData) return; try { await api().save_settings({last_news_id: newsData.post_id}); toast(t('savedToast'), 'ok'); renderNews(); } catch(e){} });
 
 document.addEventListener('click', e => {
   const ext = e.target.closest('[data-ext]');
@@ -2384,6 +2916,8 @@ async function init(){
     }
   } catch(e) { S = JSON.parse(JSON.stringify(DEMO)); }
   applyTheme();
+  applyScene(S.settings.bg_scene || '');
+  applyFontStyle(S.settings.font_style || (S.settings.has_custom_font ? 'custom' : 'manrope'));
   applyI18n();
   renderAll();
   if (S.settings.snow_enabled !== false) startParticles();
@@ -2396,6 +2930,7 @@ async function init(){
   checkNews();
   initMsgrEvents();
   tgSync();
+  openWelcome(false);
   setInterval(() => {
     if (!document.hidden && api()) refreshFromBackend();
   }, 3000);
