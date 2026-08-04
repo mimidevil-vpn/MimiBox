@@ -121,7 +121,7 @@ assert "</body>" in html
 
 # Демо может уйти кому угодно, поэтому личный аккаунт из ссылок убираем —
 # в боевой сборке он остаётся как был, до отдельного решения.
-html = html.replace("https://t.me/mimidevil", "https://t.me/LEDOKOL_SALES_BOT")
+html = html.replace("https://t.me/mimidevil", "https://t.me/mackkill")
 
 html = html.replace("</body>", MOCK + "</body>")
 os.makedirs(OUT_DIR, exist_ok=True)
@@ -129,6 +129,6 @@ open(OUT, "w", encoding="utf-8").write(html)
 print("демо собрано:", OUT)
 print("размер: %.1f КБ" % (len(html.encode("utf-8")) / 1024))
 
-утечки = [b for b in ("mimidevil", "ledokol.shop", "jh8wrLwoGPbVAs0",
+утечки = [b for b in ("mimidevil", "jh8wrLwoGPbVAs0",
                       "DanDev", "user_8141998456") if b in html]
 print("личные данные в демо:", утечки if утечки else "нет")

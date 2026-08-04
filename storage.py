@@ -139,6 +139,10 @@ DEFAULT_SETTINGS = {
     "tg_username": "",
     "tg_name": "",
     "tg_avatar": "",            # data:image/... — храним прямо в настройках
+    # ---- мессенджер (Telethon) ----
+    "tg_api_id": "",            # api_id пользователя (my.telegram.org)
+    "tg_api_hash": "",          # api_hash пользователя
+    "plugin_enabled": {},       # имя плагина -> вкл/выкл
     # ---- эмодзи возле названия (меняется раз в час) ----
     "emoji": "",
     "emoji_ts": 0,

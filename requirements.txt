@@ -1,3 +1,4 @@
 pywebview
 pystray
 pillow
+telethon==1.44.0

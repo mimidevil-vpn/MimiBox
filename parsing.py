@@ -318,32 +318,339 @@ def parse_many(text: str) -> list:
     return servers
 
 
+# ----------------------------------------------------- Xray JSON-подписка
+# Панели вроде realityvpn.online отдают не ссылки, а готовые Xray-конфиги:
+# JSON-массив, где каждый элемент — полный конфиг с outbounds. Реальные узлы
+# живут в outbounds с протоколами vless/vmess/trojan/ss и тэгом вида «proxy-N».
+
+def _xray_user_security(user: dict) -> str:
+    """У vmess уровень шифрования задаёт не streamSettings, а сам пользователь."""
+    sec = (user.get("security") or "").lower()
+    if sec in ("none", "zero"):
+        return "none"
+    if sec in ("auto", "aes-128-gcm", "chacha20-poly1305"):
+        return "auto"
+    return ""
+
+
+def _apply_xray_stream(stream: dict, s: Server) -> None:
+    """Переносит streamSettings Xray-конфига в Server."""
+    s.network = (stream.get("network") or "tcp").lower()
+    sec = (stream.get("security") or "none").lower()
+    s.security = sec if sec in ("none", "tls", "reality") else "none"
+
+    reality = stream.get("realitySettings") or {}
+    if reality:
+        s.public_key = reality.get("publicKey") or ""
+        s.short_id = reality.get("shortId") or ""
+        s.spider_x = reality.get("spiderX") or ""
+        s.sni = reality.get("serverName") or ""
+        s.fingerprint = reality.get("fingerprint") or ""
+        s.security = "reality"
+
+    tls = stream.get("tlsSettings") or {}
+    if tls:
+        s.sni = tls.get("serverName") or s.sni
+        s.fingerprint = tls.get("fingerprint") or s.fingerprint
+        s.allow_insecure = bool(tls.get("allowInsecure"))
+        alpn = tls.get("alpn")
+        if isinstance(alpn, list):
+            s.alpn = ",".join(str(a) for a in alpn)
+
+    ws = stream.get("wsSettings") or {}
+    grpc = stream.get("grpcSettings") or {}
+    xhttp = stream.get("xhttpSettings") or {}
+    splithttp = stream.get("splithttpSettings") or {}
+    httpupgrade = stream.get("httpupgradeSettings") or {}
+    h2 = stream.get("httpSettings") or {}
+
+    if ws:
+        s.path = ws.get("path") or ""
+        headers = ws.get("headers") or {}
+        s.host = headers.get("Host") or ""
+    elif grpc:
+        s.path = grpc.get("serviceName") or ""
+    elif xhttp:
+        s.path = xhttp.get("path") or ""
+        s.mode = xhttp.get("mode") or ""
+        headers = xhttp.get("headers") or {}
+        s.host = headers.get("Host") or ""
+        extra = xhttp.get("extra")
+        if isinstance(extra, dict):
+            s.extra = json.dumps(extra, ensure_ascii=False)
+    elif splithttp:
+        s.path = splithttp.get("path") or ""
+        headers = splithttp.get("headers") or {}
+        s.host = headers.get("Host") or ""
+    elif httpupgrade:
+        s.path = httpupgrade.get("path") or ""
+        s.host = httpupgrade.get("host") or ""
+    elif h2:
+        s.path = h2.get("path") or ""
+        hosts = h2.get("host") or []
+        s.host = ",".join(hosts) if isinstance(hosts, list) else str(hosts or "")
+
+
+def _xray_outbound_to_server(ob: dict, base_name: str, num: int) -> Server:
+    """Один outbound Xray-конфига в Server. None — если это не узел."""
+    protocol = (ob.get("protocol") or "").lower()
+    if protocol in ("freedom", "blackhole", "dns", "loopback", "wireguard", "block"):
+        return None
+    settings = ob.get("settings") or {}
+    stream = ob.get("streamSettings") or {}
+
+    s = Server()
+    s.raw = "xray:" + (ob.get("tag") or base_name)
+    if protocol == "vless":
+        vnext = (settings.get("vnext") or [{}])[0]
+        users = vnext.get("users") or [{}]
+        user = users[0] if users else {}
+        s.protocol, s.uuid = "vless", user.get("id") or ""
+        s.flow = user.get("flow") or ""
+        s.address, s.port = vnext.get("address") or "", int(vnext.get("port") or 443)
+    elif protocol == "vmess":
+        vnext = (settings.get("vnext") or [{}])[0]
+        users = vnext.get("users") or [{}]
+        user = users[0] if users else {}
+        s.protocol, s.uuid = "vmess", user.get("id") or ""
+        s.alter_id = int(user.get("alterId") or 0)
+        s.address, s.port = vnext.get("address") or "", int(vnext.get("port") or 443)
+    elif protocol == "trojan":
+        servers = (settings.get("servers") or [{}])
+        sv = servers[0] if servers else {}
+        s.protocol, s.password = "trojan", sv.get("password") or ""
+        s.address, s.port = sv.get("address") or "", int(sv.get("port") or 443)
+    elif protocol in ("shadowsocks", "ss"):
+        servers = (settings.get("servers") or [{}])
+        sv = servers[0] if servers else {}
+        s.protocol = "shadowsocks"
+        s.password = sv.get("password") or ""
+        s.method = sv.get("method") or "aes-256-gcm"
+        s.address, s.port = sv.get("address") or "", int(sv.get("port") or 443)
+    else:
+        return None
+
+    _apply_xray_stream(stream, s)
+    if s.protocol == "vmess" and s.security == "none":
+        vnext = (settings.get("vnext") or [{}])[0]
+        users = vnext.get("users") or [{}]
+        user = users[0] if users else {}
+        if _xray_user_security(user) == "auto":
+            s.security = "auto"
+
+    tag = ob.get("tag") or ""
+    suffix = f" · {num}" if num > 1 else ""
+    s.name = (base_name + suffix) or (tag + suffix) or s.address
+    return s
+
+
+def _is_dummy_node(s: Server) -> bool:
+    """Отсекаем служебные/заглушечные узлы из подписок-шаблонов."""
+    if s.address in ("", "127.0.0.1", "localhost", "0.0.0.0"):
+        return True
+    if s.port <= 0 or s.port > 65535:
+        return True
+    if s.protocol in ("vless", "vmess") and (not s.uuid
+            or s.uuid.replace("-", "").strip("0") == ""):
+        return True
+    if s.protocol == "trojan" and not s.password:
+        return True
+    if s.protocol == "shadowsocks" and not s.password:
+        return True
+    return False
+
+
+def _parse_xray_json(content: str) -> list:
+    """JSON-массив Xray-конфигов (формат «share-подписок» realityvpn и панелей)."""
+    try:
+        data = json.loads(content)
+    except Exception:
+        return []
+    if isinstance(data, dict):
+        for key in ("subs", "configs", "proxies"):
+            if isinstance(data.get(key), list):
+                data = data[key]
+                break
+        else:
+            return []
+    if not isinstance(data, list):
+        return []
+
+    out = []
+    seen = set()
+    for cfg in data:
+        if not isinstance(cfg, dict):
+            continue
+        base_name = (cfg.get("remarks") or cfg.get("name")
+                     or cfg.get("tag") or "Server")
+        num = 0
+        for ob in cfg.get("outbounds") or []:
+            if not isinstance(ob, dict):
+                continue
+            s = _xray_outbound_to_server(ob, base_name, num + 1)
+            if s is None or _is_dummy_node(s):
+                continue
+            num += 1
+            s.name = (base_name + (f" · {num}" if num > 1 else ""))
+            key = (s.protocol, s.address, s.port, s.uuid or s.password)
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append(s)
+    return out
+
+
+def _parse_singbox_json(content: str) -> list:
+    """Sing-box конфиг: JSON с outbounds (Nekoray/Nekobox и «все виды»)."""
+    try:
+        data = json.loads(content)
+    except Exception:
+        return []
+    if isinstance(data, dict) and "outbounds" in data:
+        data = data["outbounds"]
+    if not isinstance(data, list):
+        return []
+
+    out = []
+    seen = set()
+    for ob in data:
+        if not isinstance(ob, dict):
+            continue
+        typ = (ob.get("type") or "").lower()
+        if typ not in ("vless", "vmess", "trojan", "shadowsocks", "ss"):
+            continue
+        s = Server()
+        s.raw = "singbox:" + (ob.get("tag") or "")
+        s.address = ob.get("server") or ""
+        try:
+            s.port = int(ob.get("server_port") or 443)
+        except Exception:
+            s.port = 443
+        if typ == "vless":
+            s.protocol, s.uuid = "vless", ob.get("uuid") or ""
+            s.flow = ob.get("flow") or ""
+        elif typ == "vmess":
+            s.protocol, s.uuid = "vmess", ob.get("uuid") or ""
+            s.alter_id = int(ob.get("alter_id") or 0)
+        elif typ == "trojan":
+            s.protocol, s.password = "trojan", ob.get("password") or ""
+        else:
+            s.protocol = "shadowsocks"
+            s.password = ob.get("password") or ""
+            s.method = ob.get("method") or "aes-256-gcm"
+
+        tls = ob.get("tls") or {}
+        if tls.get("enabled"):
+            s.security = "tls"
+            s.sni = tls.get("server_name") or s.address
+            s.allow_insecure = bool(tls.get("insecure"))
+            alpn = tls.get("alpn")
+            if isinstance(alpn, list):
+                s.alpn = ",".join(str(a) for a in alpn)
+            reality = tls.get("reality") or {}
+            if reality:
+                s.security = "reality"
+                s.public_key = reality.get("public_key") or ""
+                s.short_id = reality.get("short_id") or ""
+                s.spider_x = reality.get("spider_x") or ""
+            utls = tls.get("utls") or {}
+            if utls:
+                s.fingerprint = utls.get("fingerprint") or s.fingerprint
+
+        tr = ob.get("transport") or {}
+        ttype = (tr.get("type") or "tcp").lower()
+        s.network = ttype
+        if ttype in ("ws", "websocket"):
+            s.network = "ws"
+            s.path = tr.get("path") or ""
+            headers = tr.get("headers") or {}
+            s.host = headers.get("Host") or headers.get("host") or ""
+        elif ttype == "grpc":
+            s.path = tr.get("service_name") or ""
+        elif ttype in ("xhttp", "httpupgrade", "splithttp"):
+            s.path = tr.get("path") or ""
+            s.host = tr.get("host") or ""
+            if ttype == "xhttp":
+                s.mode = tr.get("mode") or ""
+        elif ttype == "http":
+            s.network = "h2"
+            s.path = tr.get("path") or ""
+            hosts = tr.get("host") or []
+            s.host = ",".join(hosts) if isinstance(hosts, list) else str(hosts or "")
+
+        if _is_dummy_node(s):
+            continue
+        key = (s.protocol, s.address, s.port, s.uuid or s.password)
+        if key in seen:
+            continue
+        seen.add(key)
+        s.name = ob.get("tag") or ob.get("name") or s.address
+        out.append(s)
+    return out
+
+
 def parse_subscription(content: str) -> list:
-    """Разбирает подписку в любом виде: Clash YAML, base64 всего списка,
-    base64 построчно или plain-текст с прямыми ссылками."""
+    """Разбирает подписку в любом виде: Xray JSON, sing-box JSON, Clash YAML,
+    base64 всего списка, base64 построчно, двойной base64 или plain-текст
+    с прямыми ссылками."""
     content = (content or "").strip()
     if not content:
         return []
 
     low = content.lower()
+
+    # 1) Xray share-подписка: JSON-массив конфигов
+    if content.startswith("[") or (content.startswith("{") and '"outbounds"' in low):
+        servers = _parse_xray_json(content)
+        if servers:
+            return servers
+
+    # 2) sing-box конфиг
+    if content.startswith("{") and '"type"' in low:
+        servers = _parse_singbox_json(content)
+        if servers:
+            return servers
+
+    # 3) Clash YAML
     if "proxies:" in low and ("- name:" in low or "- type:" in low):
         clash = _parse_clash(content)
         if clash:
             return clash
 
+    # 4) plain-текст / base64 всего списка / двойной base64
     servers = parse_many(content)
     if servers:
         return servers
 
+    decoded_once = ""
     try:
-        dec = _b64decode(content).decode("utf-8", "ignore")
-        if "://" in dec:
+        decoded_once = _b64decode(content).decode("utf-8", "ignore")
+    except Exception:
+        pass
+    for dec in (decoded_once,):
+        if dec and "://" in dec:
             servers = parse_many(dec)
             if servers:
                 return servers
-    except Exception:
-        pass
+            clash = _parse_clash(dec)
+            if clash:
+                return clash
+        if dec and (dec.startswith("[") or dec.startswith("{")):
+            servers = _parse_xray_json(dec) or _parse_singbox_json(dec)
+            if servers:
+                return servers
+    if decoded_once and decoded_once.strip() and "://" not in decoded_once:
+        # некоторые панели кладут base64 от base64 — снимаем второй слой
+        try:
+            dec2 = _b64decode(decoded_once).decode("utf-8", "ignore")
+            if "://" in dec2:
+                servers = parse_many(dec2)
+                if servers:
+                    return servers
+        except Exception:
+            pass
 
+    # 5) построчная base64 (Nekoray/Nekobox) — каждая строка свой конфиг
     out = []
     for line in content.replace("\r", "\n").split("\n"):
         line = line.strip()
@@ -351,11 +658,15 @@ def parse_subscription(content: str) -> list:
             continue
         try:
             dec = _b64decode(line).decode("utf-8", "ignore")
-            if "://" in dec:
-                out.extend(parse_many(dec))
         except Exception:
             continue
-    return out
+        if "://" in dec:
+            out.extend(parse_many(dec))
+        elif dec.lstrip().startswith("{"):
+            out.extend(_parse_singbox_json(dec))
+    if out:
+        return out
+    return []
 
 
 def parse_userinfo(header: str) -> dict:

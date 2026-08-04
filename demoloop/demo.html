@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>LEDOKOL HUB - Subscription Required</title>
+    <title>MimiBox - Subscription Required</title>
     <style>
         /* ==================== BASE STYLES ==================== */
         :root {
@@ -196,19 +196,19 @@
                         <path d="M8.5 8.5h3.5v3.5M15.5 8.5h-4v4M15.5 15.5v-4h-4" stroke="currentColor"/>
                     </svg>
                 </div>
-                <h1 class="intro-title">LEDOKOL HUB</h1>
+                <h1 class="intro-title">MimiBox</h1>
                 <p class="intro-sub">
-                    Введите ссылку на подписку из Telegram-бота. Приложение не запустится без действующей подписки.
+                    Р’РІРµРґРёС‚Рµ СЃСЃС‹Р»РєСѓ РЅР° РїРѕРґРїРёСЃРєСѓ РёР· Telegram-Р±РѕС‚Р°. РџСЂРёР»РѕР¶РµРЅРёРµ РЅРµ Р·Р°РїСѓСЃС‚РёС‚СЃСЏ Р±РµР· РґРµР№СЃС‚РІСѓСЋС‰РµР№ РїРѕРґРїРёСЃРєРё.
                 </p>
                 
                 <div class="tg-intro-form">
                     <input type="text" class="field" id="subInput" 
-                           placeholder="https://sub.ledokol.shop/#####" 
+                           placeholder="https://вЂ¦" 
                            spellcheck="false"
                            onkeydown="if(event.key==='Enter') validateAndContinue();">
                     <button class="intro-btn auth-btn" id="subBtn" onclick="validateAndContinue()" 
                             style="min-width: 150px; height: 54px;">
-                        <span class="lbl">Вставить</span>
+                        <span class="lbl">Р’СЃС‚Р°РІРёС‚СЊ</span>
                         <span class="spin" style="display: none; width: 18px; height: 18px;
                             border: 2px solid currentColor; border-right-color: transparent;
                             border-radius: 50%; display: inline-block; animation: spin .7s linear infinite;"></span>
@@ -216,40 +216,40 @@
                 </div>
                 
                 <div class="intro-note error" id="subNote" style="display: none;">
-                    Неверный формат. Должно быть https://sub.ledokol.shop/#####
+                    РќРµРІРµСЂРЅС‹Р№ С„РѕСЂРјР°С‚. Р’СЃС‚Р°РІСЊС‚Рµ СЃСЃС‹Р»РєСѓ РЅР° РїРѕРґРїРёСЃРєСѓ РёР· Р±РѕС‚Р°
                 </div>
                 
                 <div class="intro-note" id="subNoteSuccess" style="display: none; color: #4ade80;">
-                    ✓ Подписка успешно добавлена
+                    вњ“ РџРѕРґРїРёСЃРєР° СѓСЃРїРµС€РЅРѕ РґРѕР±Р°РІР»РµРЅР°
                 </div>
             </div>
         </div>
         
-        <!-- Основной интерфейс приложения (скрыт до входа в систему) -->
+        <!-- РћСЃРЅРѕРІРЅРѕР№ РёРЅС‚РµСЂС„РµР№СЃ РїСЂРёР»РѕР¶РµРЅРёСЏ (СЃРєСЂС‹С‚ РґРѕ РІС…РѕРґР° РІ СЃРёСЃС‚РµРјСѓ) -->
         <div class="app" id="appRoot" style="display: none;">
             <div style="text-align: center; padding: 100px; color: var(--text);">
-                <h1>Приложение загружается...</h1>
-                <p>Пожалуйста, подождите</p>
+                <h1>РџСЂРёР»РѕР¶РµРЅРёРµ Р·Р°РіСЂСѓР¶Р°РµС‚СЃСЏ...</h1>
+                <p>РџРѕР¶Р°Р»СѓР№СЃС‚Р°, РїРѕРґРѕР¶РґРёС‚Рµ</p>
             </div>
         </div>
     </div>
     
     <!-- ============================ APP SCRIPT ============================ -->
     <script>
-        // Глобальные переменные
+        // Р“Р»РѕР±Р°Р»СЊРЅС‹Рµ РїРµСЂРµРјРµРЅРЅС‹Рµ
         let STATE = {
             isAuthenticated: false,
             subscription: null,
             introDone: false
         };
         
-        // Проверка валидности подписки
+        // РџСЂРѕРІРµСЂРєР° РІР°Р»РёРґРЅРѕСЃС‚Рё РїРѕРґРїРёСЃРєРё
         function validateSubscription(url) {
-            const pattern = /^https:\/\/sub\.ledokol\.shop\/[a-zA-Z0-9]+$/;
+            const pattern = /^https:\/\/.+/;
             return pattern.test(url);
         }
         
-        // Валидирует и продолжает
+        // Р’Р°Р»РёРґРёСЂСѓРµС‚ Рё РїСЂРѕРґРѕР»Р¶Р°РµС‚
         function validateAndContinue() {
             const subInput = document.getElementById('subInput');
             const subNote = document.getElementById('subNote');
@@ -259,21 +259,21 @@
             const url = subInput.value.trim();
             
             if (!url) {
-                showError('Введите ссылку на подписку');
+                showError('Р’РІРµРґРёС‚Рµ СЃСЃС‹Р»РєСѓ РЅР° РїРѕРґРїРёСЃРєСѓ');
                 return;
             }
             
             if (!validateSubscription(url)) {
-                showError('Неверный формат. Должно быть https://sub.ledokol.shop/#####');
+                showError('РќРµРІРµСЂРЅС‹Р№ С„РѕСЂРјР°С‚. Р’СЃС‚Р°РІСЊС‚Рµ СЃСЃС‹Р»РєСѓ РЅР° РїРѕРґРїРёСЃРєСѓ РёР· Р±РѕС‚Р°');
                 return;
             }
             
-            // Показываем индикатор загрузки
+            // РџРѕРєР°Р·С‹РІР°РµРј РёРЅРґРёРєР°С‚РѕСЂ Р·Р°РіСЂСѓР·РєРё
             showLoading(true);
             
-            // Имитация запроса к серверу для добавления подписки
+            // РРјРёС‚Р°С†РёСЏ Р·Р°РїСЂРѕСЃР° Рє СЃРµСЂРІРµСЂСѓ РґР»СЏ РґРѕР±Р°РІР»РµРЅРёСЏ РїРѕРґРїРёСЃРєРё
             setTimeout(() => {
-                // Имитируем успешное добавление подписки
+                // РРјРёС‚РёСЂСѓРµРј СѓСЃРїРµС€РЅРѕРµ РґРѕР±Р°РІР»РµРЅРёРµ РїРѕРґРїРёСЃРєРё
                 STATE.subscription = {
                     url: url,
                     status: 'active',
@@ -283,38 +283,38 @@
                 
                 STATE.isAuthenticated = true;
                 
-                // Сохраняем состояние
-                localStorage.setItem('ledokol_auth', JSON.stringify(STATE));
+                // РЎРѕС…СЂР°РЅСЏРµРј СЃРѕСЃС‚РѕСЏРЅРёРµ
+                localStorage.setItem('mimibox_auth', JSON.stringify(STATE));
                 
-                // Показываем сообщение об успехе
-                showError('', false); // Сброс ошибки
-                subNoteSuccess.textContent = '✓ Подписка успешно добавлена';
+                // РџРѕРєР°Р·С‹РІР°РµРј СЃРѕРѕР±С‰РµРЅРёРµ РѕР± СѓСЃРїРµС…Рµ
+                showError('', false); // РЎР±СЂРѕСЃ РѕС€РёР±РєРё
+                subNoteSuccess.textContent = 'вњ“ РџРѕРґРїРёСЃРєР° СѓСЃРїРµС€РЅРѕ РґРѕР±Р°РІР»РµРЅР°';
                 subNoteSuccess.style.display = 'block';
                 
                 showLoading(false);
                 
-                // Через 1.5 секунды переходим к основному приложению
+                // Р§РµСЂРµР· 1.5 СЃРµРєСѓРЅРґС‹ РїРµСЂРµС…РѕРґРёРј Рє РѕСЃРЅРѕРІРЅРѕРјСѓ РїСЂРёР»РѕР¶РµРЅРёСЋ
                 setTimeout(() => {
-                    // Скрываем экран подписки
+                    // РЎРєСЂС‹РІР°РµРј СЌРєСЂР°РЅ РїРѕРґРїРёСЃРєРё
                     document.getElementById('intro').classList.add('gone');
                     document.getElementById('introSub').classList.remove('active');
                     
-                    // Показываем основное приложение
+                    // РџРѕРєР°Р·С‹РІР°РµРј РѕСЃРЅРѕРІРЅРѕРµ РїСЂРёР»РѕР¶РµРЅРёРµ
                     setTimeout(() => {
                         document.getElementById('appRoot').style.display = 'flex';
-                        // Даем небольшую задержку перед применением эффекта "go"
+                        // Р”Р°РµРј РЅРµР±РѕР»СЊС€СѓСЋ Р·Р°РґРµСЂР¶РєСѓ РїРµСЂРµРґ РїСЂРёРјРµРЅРµРЅРёРµРј СЌС„С„РµРєС‚Р° "go"
                         setTimeout(() => {
                             document.getElementById('appRoot').classList.add('go');
                         }, 100);
                         
-                        // Показываем приветственное уведомление
+                        // РџРѕРєР°Р·С‹РІР°РµРј РїСЂРёРІРµС‚СЃС‚РІРµРЅРЅРѕРµ СѓРІРµРґРѕРјР»РµРЅРёРµ
                         showWelcomeNotification();
                     }, 400);
                 }, 1500);
             }, 1000);
         }
         
-        // Показать/скрыть индикатор загрузки
+        // РџРѕРєР°Р·Р°С‚СЊ/СЃРєСЂС‹С‚СЊ РёРЅРґРёРєР°С‚РѕСЂ Р·Р°РіСЂСѓР·РєРё
         function showLoading(show) {
             const btn = document.getElementById('subBtn');
             const spin = btn.querySelector('.spin');
@@ -331,7 +331,7 @@
             }
         }
         
-        // Показать сообщение об ошибке или успехе
+        // РџРѕРєР°Р·Р°С‚СЊ СЃРѕРѕР±С‰РµРЅРёРµ РѕР± РѕС€РёР±РєРµ РёР»Рё СѓСЃРїРµС…Рµ
         function showError(message, isError = true) {
             const subNote = document.getElementById('subNote');
             
@@ -344,7 +344,7 @@
             }
         }
         
-        // Показать приветственное уведомление
+        // РџРѕРєР°Р·Р°С‚СЊ РїСЂРёРІРµС‚СЃС‚РІРµРЅРЅРѕРµ СѓРІРµРґРѕРјР»РµРЅРёРµ
         function showWelcomeNotification() {
             const msg = document.createElement('div');
             msg.style.cssText = `
@@ -361,7 +361,7 @@
                 z-index: 1000;
                 animation: slideDown 0.3s ease;
             `;
-            msg.textContent = '✓ Подписка добавлена, приветствуем в приложении!';
+            msg.textContent = 'вњ“ РџРѕРґРїРёСЃРєР° РґРѕР±Р°РІР»РµРЅР°, РїСЂРёРІРµС‚СЃС‚РІСѓРµРј РІ РїСЂРёР»РѕР¶РµРЅРёРё!';
             document.body.appendChild(msg);
             
             setTimeout(() => {
@@ -372,14 +372,14 @@
             }, 3000);
         }
         
-        // Проверка сохраненного состояния при загрузке
+        // РџСЂРѕРІРµСЂРєР° СЃРѕС…СЂР°РЅРµРЅРЅРѕРіРѕ СЃРѕСЃС‚РѕСЏРЅРёСЏ РїСЂРё Р·Р°РіСЂСѓР·РєРµ
         function checkSavedAuth() {
-            const saved = localStorage.getItem('ledokol_auth');
+            const saved = localStorage.getItem('mimibox_auth');
             if (saved) {
                 try {
                     STATE = JSON.parse(saved);
                     if (STATE.isAuthenticated && STATE.subscription) {
-                        // Сразу показываем основное приложение, не показывая экран подписки
+                        // РЎСЂР°Р·Сѓ РїРѕРєР°Р·С‹РІР°РµРј РѕСЃРЅРѕРІРЅРѕРµ РїСЂРёР»РѕР¶РµРЅРёРµ, РЅРµ РїРѕРєР°Р·С‹РІР°СЏ СЌРєСЂР°РЅ РїРѕРґРїРёСЃРєРё
                         document.getElementById('intro').classList.add('gone');
                         document.getElementById('introSub').classList.remove('active');
                         document.getElementById('appRoot').style.display = 'flex';
@@ -389,12 +389,12 @@
                     }
                 } catch (e) {
                     console.error('Failed to parse saved auth:', e);
-                    localStorage.removeItem('ledokol_auth');
+                    localStorage.removeItem('mimibox_auth');
                 }
             }
         }
         
-        // Добавляем анимации в head
+        // Р”РѕР±Р°РІР»СЏРµРј Р°РЅРёРјР°С†РёРё РІ head
         function addAnimations() {
             const style = document.createElement('style');
             style.textContent = `
@@ -415,20 +415,20 @@
             document.head.appendChild(style);
         }
         
-        // Инициализация
+        // РРЅРёС†РёР°Р»РёР·Р°С†РёСЏ
         function init() {
             addAnimations();
             checkSavedAuth();
         }
         
-        // Запускаем при готовности DOM
+        // Р—Р°РїСѓСЃРєР°РµРј РїСЂРё РіРѕС‚РѕРІРЅРѕСЃС‚Рё DOM
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', init);
         } else {
             init();
         }
         
-        // Для обратной совместимости: делаем функцию доступной глобально
+        // Р”Р»СЏ РѕР±СЂР°С‚РЅРѕР№ СЃРѕРІРјРµСЃС‚РёРјРѕСЃС‚Рё: РґРµР»Р°РµРј С„СѓРЅРєС†РёСЋ РґРѕСЃС‚СѓРїРЅРѕР№ РіР»РѕР±Р°Р»СЊРЅРѕ
         window.validateAndContinue = validateAndContinue;
     </script>
 </body>

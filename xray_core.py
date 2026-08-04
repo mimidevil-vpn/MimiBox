@@ -170,6 +170,13 @@ def split_rules(entries) -> tuple:
     return domains, ips
 
 
+# Служебные UDP-порты Windows, которые при поднятом туннеле начинают сыпаться в
+# логи как «accepted udp:127.0.0.1:* accepted udp:192.168.123.255:137»:
+# NetBIOS (137-139), mDNS (5353), SSDP (1900), DHCP (67/68). Это локальный сетевой
+# шум, а не ошибки — туннелировать его нельзя (и не нужно), отправляем напрямую.
+LAN_UDP_PORTS = [67, 68, 137, 138, 139, 5353, 1900]
+
+
 def build_routing(mode: str, direct_entries=None, block_entries=None) -> dict:
     """mode: global (всё через VPN) | rules (RU и локальные напрямую) | direct."""
     rules = [
@@ -178,6 +185,9 @@ def build_routing(mode: str, direct_entries=None, block_entries=None) -> dict:
         # локальная сеть и петля всегда напрямую, иначе отвалится доступ к роутеру
         {"type": "field", "ip": ["geoip:private"], "outboundTag": "direct"},
         {"type": "field", "domain": ["domain:localhost"], "outboundTag": "direct"},
+        # широковещательный UDP-шум Windows — напрямую, иначе он топит логи
+        {"type": "field", "network": "udp", "port": LAN_UDP_PORTS,
+         "outboundTag": "direct"},
     ]
 
     b_domains, b_ips = split_rules(block_entries)

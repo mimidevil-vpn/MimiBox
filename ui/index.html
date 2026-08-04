@@ -30,6 +30,7 @@ body.theme-light{
 }
 
 *{box-sizing:border-box;margin:0;padding:0}
+[hidden]{display:none !important}
 html,body{height:100%}
 body{
   font-family:'Manrope',system-ui,'Segoe UI Variable','Segoe UI',sans-serif;
@@ -356,6 +357,102 @@ select.input{appearance:none;background-image:linear-gradient(45deg,transparent 
 ::-webkit-scrollbar-thumb{background:var(--bg3);border-radius:9px;border:2px solid transparent;background-clip:content-box}
 ::-webkit-scrollbar-thumb:hover{background:var(--faint);background-clip:content-box}
 
+/* ---------- MESSENGER ---------- */
+.screen.messenger-screen{height:100%;padding:0;overflow:hidden}
+.screen.messenger-screen.active{display:flex;animation:none}
+.msgr{flex:1;display:flex;flex-direction:column;min-height:0}
+
+.msgr-login{flex:1;display:flex;gap:14px;align-items:flex-start;justify-content:center;padding:4vh 32px;flex-wrap:wrap}
+.msgr-login-card{width:340px;padding:24px}
+.msgr-login-card h3{font-size:19px;font-weight:800;margin:8px 0 4px}
+.msgr-login-card .screen-desc{margin:0 0 18px}
+.msgr-login-card .field-label{margin-bottom:6px}
+.msgr-login-card .input{margin-bottom:12px}
+.msgr-login-actions{display:flex;gap:10px;align-items:center;margin-top:6px;flex-wrap:wrap}
+.msgr-login-hint{font-size:12px;color:var(--faint);margin-top:12px;line-height:1.5}
+.tg-hint{font-size:12px;color:var(--faint);margin-top:12px;line-height:1.5}
+.tg-hint.err{color:#FF8FA3}
+.msgr-plugins-card{width:320px;padding:24px}
+.msgr-plugins-card .plugins-note{font-size:12px;color:var(--faint);margin:10px 0 12px;line-height:1.5}
+
+.msgr-main{flex:1;display:flex;min-height:0}
+.msgr-dialogs{width:272px;flex:none;display:flex;flex-direction:column;border-right:1px solid var(--line-soft);background:var(--glass);min-height:0}
+.msgr-dialogs-head{padding:14px 14px 10px;border-bottom:1px solid var(--line-soft)}
+.msgr-me{display:flex;align-items:center;gap:10px;padding-bottom:10px}
+.msgr-me .tg-avatar{width:38px;height:38px;border-radius:12px;font-size:15px}
+.msgr-me .me-txt{flex:1;min-width:0}
+.msgr-me .me-name{font-weight:800;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.msgr-me .me-sub{font-size:10.5px;color:var(--faint)}
+.msgr-dialogs-actions{display:flex;gap:6px;margin-bottom:10px}
+.msgr-dialogs-actions .btn{flex:1;padding:6px 8px;font-size:10.5px}
+#msgrSearch{font-size:12.5px;padding:8px 12px}
+.msgr-dialog-list{flex:1;overflow-y:auto;min-height:0}
+.msgr-dialog{display:flex;gap:10px;padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--line-soft);transition:background .15s}
+.msgr-dialog:hover{background:rgba(255,255,255,.03)}
+.msgr-dialog.active{background:linear-gradient(90deg,rgba(225,139,255,.12),rgba(225,139,255,.02))}
+.dlg-ava{width:40px;height:40px;flex:none;border-radius:12px;display:grid;place-items:center;font-weight:800;font-size:14px;color:#fff;
+  background:linear-gradient(135deg,rgba(255,122,205,.55),rgba(200,132,255,.6));overflow:hidden}
+.dlg-ava img{width:100%;height:100%;object-fit:cover}
+.dlg-meta{flex:1;min-width:0}
+.dlg-top{display:flex;align-items:center;gap:6px}
+.dlg-title{font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dlg-time{flex:none;font-size:10px;color:var(--faint);font-variant-numeric:tabular-nums}
+.dlg-bottom{display:flex;align-items:center;gap:6px;margin-top:2px}
+.dlg-last{flex:1;font-size:11.5px;color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dlg-unread{flex:none;min-width:18px;height:18px;border-radius:9px;padding:0 5px;display:grid;place-items:center;
+  background:var(--accent-grad);color:#fff;font-size:10px;font-weight:800}
+.dlg-empty{padding:30px 14px;text-align:center;color:var(--faint);font-size:12.5px}
+
+.msgr-chat{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0}
+.msgr-chat-head{flex:none;display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid var(--line-soft)}
+.msgr-chat-head .tg-avatar{width:36px;height:36px;border-radius:11px;font-size:14px}
+.msgr-chat-title{font-weight:800;font-size:14px}
+.msgr-chat-sub{font-size:11px;color:var(--dim);margin-top:1px}
+.msgr-chat-body{flex:1;overflow-y:auto;min-height:0;padding:18px 22px;display:flex;flex-direction:column;gap:8px}
+.chat-day{text-align:center;font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint);margin:6px 0}
+.msg{max-width:68%;align-self:flex-start;position:relative;padding:9px 13px 7px;border-radius:14px 14px 14px 4px;
+  background:rgba(0,0,0,.28);border:1px solid var(--line);font-size:13px;line-height:1.5;word-wrap:break-word}
+.msg.out{align-self:flex-end;background:linear-gradient(135deg,rgba(255,122,205,.20),rgba(200,132,255,.14));
+  border-color:rgba(225,139,255,.28);border-radius:14px 14px 4px 14px}
+.msg.plug{border-color:rgba(125,226,168,.35);background:rgba(125,226,168,.07)}
+.msg.plug .msg-tag{display:block;font-size:9.5px;letter-spacing:.14em;color:#7DE2A8;font-weight:800;margin-bottom:2px;text-transform:uppercase}
+.msg .msg-sender{display:block;font-size:10.5px;font-weight:800;color:var(--lav);margin-bottom:2px}
+.msg .msg-time{display:block;text-align:right;font-size:9.5px;color:var(--faint);margin-top:3px;font-variant-numeric:tabular-nums}
+.msg-media{display:flex;align-items:center;gap:9px;margin-top:4px;padding:7px 9px;border-radius:9px;cursor:pointer;
+  background:rgba(0,0,0,.22);border:1px solid var(--line);transition:border-color .15s}
+.msg-media:hover{border-color:rgba(225,139,255,.4)}
+.msg-media .mm-icon{font-size:16px;flex:none}
+.msg-media .mm-name{font-size:11.5px;font-weight:700;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.msg-media .mm-size{font-size:10px;color:var(--faint)}
+.msg img.msg-photo{display:block;margin-top:4px;max-width:240px;max-height:200px;border-radius:10px;cursor:zoom-in;
+  border:1px solid var(--line)}
+
+.msgr-chat-input{flex:none;display:flex;align-items:flex-end;gap:8px;padding:12px 16px;border-top:1px solid var(--line-soft)}
+.msgr-chat-input textarea{flex:1;resize:none;min-height:42px;max-height:140px;padding:10px 13px;font-size:13px;line-height:1.4}
+#chatSendBtn{width:42px;height:42px;flex:none;border-radius:12px;font-size:15px;padding:0}
+#chatAttachBtn{width:42px;height:42px;flex:none;border-radius:12px;font-size:17px;padding:0}
+
+/* ---- плагины ---- */
+.msgr-modal{position:fixed;inset:0;z-index:90;display:flex;align-items:center;justify-content:center;
+  background:rgba(0,0,0,.55);backdrop-filter:blur(6px);padding:24px}
+.msgr-modal-card{width:460px;max-width:92vw;max-height:80vh;display:flex;flex-direction:column;padding:22px}
+.msgr-modal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.msgr-modal-body{flex:1;overflow-y:auto;min-height:0;display:flex;flex-direction:column;gap:8px}
+.plugin-item{display:flex;gap:10px;align-items:center;padding:11px 13px;border-radius:11px;background:var(--glass);border:1px solid var(--line-soft)}
+.plugin-item .pi-main{flex:1;min-width:0}
+.plugin-item .pi-name{font-weight:800;font-size:13px;display:flex;align-items:center;gap:7px}
+.plugin-item .pi-ver{font-size:9.5px;color:var(--faint);font-weight:700;border:1px solid var(--line);border-radius:6px;padding:1px 5px}
+.plugin-item .pi-desc{font-size:11px;color:var(--dim);margin-top:2px}
+.plugin-item .pi-err{font-size:10.5px;color:#FF8FA3;margin-top:3px;white-space:pre-wrap}
+.msgr-modal-foot{display:flex;gap:8px;align-items:center;margin-top:14px;border-top:1px solid var(--line-soft);padding-top:14px}
+.msgr-modal-foot .import-hint{flex:1;margin:0;font-size:11px}
+.msgr-modal-foot .btn{padding:7px 12px;font-size:10.5px}
+
+/* ---- просмотр фото ---- */
+.photo-viewer{position:fixed;inset:0;z-index:95;display:flex;align-items:center;justify-content:center;
+  background:rgba(0,0,0,.82);backdrop-filter:blur(8px);cursor:zoom-out;padding:30px}
+.photo-viewer img{max-width:92vw;max-height:88vh;border-radius:12px;box-shadow:0 20px 70px rgba(0,0,0,.7)}
+
 /* ---------- reduced motion ---------- */
 @media (prefers-reduced-motion: reduce){
   *{animation-duration:.01ms !important;transition-duration:.01ms !important}
@@ -503,6 +600,10 @@ select.input{appearance:none;background-image:linear-gradient(45deg,transparent 
       <button class="nav-item" data-screen="profile">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.6"/><path d="M5 20a7 7 0 0 1 14 0"/></svg>
         <span data-i18n="navProfile">Профиль</span>
+      </button>
+      <button class="nav-item" data-screen="messenger">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+        <span data-i18n="navMessenger">Мессенджер</span>
       </button>
     </nav>
     <div class="sidebar-foot">
@@ -842,6 +943,90 @@ select.input{appearance:none;background-image:linear-gradient(45deg,transparent 
         </div>
       </section>
 
+      <section class="screen messenger-screen" data-screen="messenger">
+        <div class="msgr" id="msgrRoot">
+
+          <div class="msgr-login" id="msgrLogin" hidden>
+            <div class="glass msgr-login-card">
+              <div class="mc-label">MESSENGER</div>
+              <h3 data-i18n="tgLoginTitle">Вход в Telegram</h3>
+              <p class="screen-desc" data-i18n="tgLoginDesc">Номер телефона + код из Telegram. Всё хранится только локально.</p>
+              <div class="field-label">api_id <span style="text-transform:none;letter-spacing:0">(<a data-ext="https://my.telegram.org/apps" style="color:var(--lav)">my.telegram.org</a>)</span></div>
+              <input class="input" id="tgApiId" placeholder="12345678" autocomplete="off" spellcheck="false">
+              <div class="field-label">api_hash</div>
+              <input class="input" id="tgApiHash" placeholder="hex-строка 32 символа" autocomplete="off" spellcheck="false">
+              <div class="field-label" data-i18n="tgPhone">Телефон</div>
+              <input class="input" id="tgPhone" placeholder="+7 900 000-00-00" autocomplete="off" spellcheck="false">
+              <div id="tgCodeWrap" hidden>
+                <div class="field-label" data-i18n="tgCode">Код из Telegram</div>
+                <input class="input" id="tgCode" placeholder="12345" autocomplete="off" inputmode="numeric" spellcheck="false">
+              </div>
+              <div id="tgPassWrap" hidden>
+                <div class="field-label" data-i18n="tgPass">Облачный пароль (2FA)</div>
+                <input class="input" id="tgPass" type="password" placeholder="••••••••" autocomplete="off" spellcheck="false">
+              </div>
+              <div class="msgr-login-actions">
+                <button class="btn primary" id="tgSendCodeBtn" data-i18n="tgGetCode">Получить код</button>
+                <button class="btn primary" id="tgLoginBtn" hidden data-i18n="tgLoginBtn">Войти</button>
+                <button class="btn ghost small danger" id="tgLoginCancelBtn" hidden data-i18n="tgCancel">Отмена</button>
+              </div>
+              <div class="msgr-login-hint" id="tgLoginHint"></div>
+            </div>
+
+            <div class="glass msgr-plugins-card">
+              <div class="mc-label" data-i18n="tgPlugins">Плагины</div>
+              <div class="plugins-note" data-i18n="tgPluginsHint">Как в ExtraGram: положи .py в папку plugins — команды и обработчики заработают.</div>
+              <div id="pluginListSmall"></div>
+              <div class="msgr-login-actions">
+                <button class="btn ghost small" id="pluginOpenFolderBtn2" data-i18n="tgPluginsFolder">Папка</button>
+                <button class="btn ghost small" id="pluginReloadBtn2" data-i18n="tgPluginsReload">Перезагрузить</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="msgr-main" id="msgrMain" hidden>
+            <aside class="msgr-dialogs">
+              <div class="msgr-dialogs-head">
+                <div class="msgr-me">
+                  <div class="tg-avatar placeholder" id="msgrMeAva">🖤</div>
+                  <div class="me-txt">
+                    <div class="me-name" id="msgrMeName">—</div>
+                    <div class="me-sub" id="msgrMeSub">&nbsp;</div>
+                  </div>
+                  <button class="btn ghost small danger" id="msgrLogoutBtn" data-i18n="tgLogout" title="Выйти">⎋</button>
+                </div>
+                <div class="msgr-dialogs-actions">
+                  <button class="btn ghost small" id="msgrPluginsBtn" data-i18n="tgPlugins">Плагины</button>
+                  <button class="btn ghost small" id="msgrRefreshBtn" data-i18n="tgRefresh">⟳</button>
+                </div>
+                <input class="input" id="msgrSearch" placeholder="Поиск…" autocomplete="off" spellcheck="false">
+              </div>
+              <div class="msgr-dialog-list" id="dialogList"></div>
+            </aside>
+
+            <div class="msgr-chat">
+              <div class="msgr-chat-head">
+                <div class="tg-avatar placeholder" id="chatAva">🖤</div>
+                <div>
+                  <div class="msgr-chat-title" id="chatTitle">—</div>
+                  <div class="msgr-chat-sub" id="chatSub">&nbsp;</div>
+                </div>
+              </div>
+              <div class="msgr-chat-body" id="chatBody">
+                <div class="empty-state" data-i18n="tgChooseChat">Выберите чат слева</div>
+              </div>
+              <div class="msgr-chat-input">
+                <button class="btn ghost" id="chatAttachBtn" title="Файл">📎</button>
+                <input type="file" id="chatFile" hidden>
+                <textarea class="input" id="chatInput" placeholder="Сообщение…" autocomplete="off"></textarea>
+                <button class="btn primary" id="chatSendBtn" title="Отправить">➤</button>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
     </div>
   </main>
 </div>
@@ -857,6 +1042,23 @@ select.input{appearance:none;background-image:linear-gradient(45deg,transparent 
 </div>
 
 <div id="toasts"></div>
+
+<div class="msgr-modal" id="pluginModal" hidden>
+  <div class="glass msgr-modal-card">
+    <div class="msgr-modal-head">
+      <div class="mc-label" data-i18n="tgPlugins">Плагины</div>
+      <button class="btn ghost small" id="pluginModalClose">✕</button>
+    </div>
+    <div class="msgr-modal-body" id="pluginListModal"></div>
+    <div class="msgr-modal-foot">
+      <div class="import-hint" data-i18n="tgPluginsFolderHint">Папка данных\plugins\*.py</div>
+      <button class="btn ghost small" id="pluginOpenFolderBtn" data-i18n="tgPluginsFolder">Папка</button>
+      <button class="btn ghost small" id="pluginReloadBtn" data-i18n="tgPluginsReload">Перезагрузить</button>
+    </div>
+  </div>
+</div>
+
+<div class="photo-viewer" id="photoViewer" hidden><img id="photoViewerImg" src="" alt=""></div>
 
 <script>
 'use strict';
@@ -911,7 +1113,23 @@ const I18N = {
     restarting:'Перезапуск с правами администратора…',
     savedErr:'Ошибка сохранения:',
     pingDone:'Пинг завершён', connectErr:'Ошибка:', denied:'Доступ отклонён',
-    offline:'OFFLINE', connected:'ONLINE'
+    offline:'OFFLINE', connected:'ONLINE',
+    navMessenger:'Мессенджер',
+    tgLoginTitle:'Вход в Telegram', tgLoginDesc:'Номер телефона + код из Telegram. Всё хранится только локально.',
+    tgPhone:'Телефон', tgCode:'Код из Telegram', tgPass:'Облачный пароль (2FA)',
+    tgGetCode:'Получить код', tgLoginBtn:'Войти', tgCancel:'Отмена', tgLogout:'Выйти',
+    tgRefresh:'Обновить', tgChooseChat:'Выберите чат слева', tgSearch:'Поиск…',
+    tgPlugins:'Плагины', tgPluginsHint:'Как в ExtraGram: положи .py в папку plugins — команды и обработчики заработают.',
+    tgPluginsFolder:'Папка', tgPluginsReload:'Перезагрузить', tgPluginsFolderHint:'Папка данных\\plugins\\*.py',
+    tgNeedCreds:'Укажи api_id и api_hash из my.telegram.org, потом телефон — и код придёт в Telegram.',
+    tgSending:'Отправка…', tgLoadingChat:'Загрузка…', tgErrOp:'Ошибка:',
+    tgLoggedOut:'Вышли из аккаунта', tgSent:'Отправлено',
+    tgMediaPhoto:'Фото', tgMediaGif:'GIF', tgMediaSticker:'Стикер', tgMediaVoice:'Голосовое',
+    tgMediaVideo:'Видео', tgMediaAudio:'Аудио', tgMediaContact:'Контакт', tgMediaLocation:'Геолокация',
+    tgMediaPoll:'Опрос', tgMediaInvoice:'Платёж', tgMediaGame:'Игра', tgMediaFile:'Файл',
+    tgOpenFile:'Открыть файл', tgDownloading:'Скачивание…', tgYesterday:'вчера', tgNoDialogs:'Чатов нет',
+    tgBadPhone:'Введите номер телефона', tgBadCode:'Введите код', tgBadPass:'Введите пароль',
+    tgFlood:'Слишком много попыток, подождите', tgNoPlugins:'Плагинов пока нет'
   },
   en: {
     navHome:'Home', navServers:'Servers', navRoutes:'Routes', navStats:'Statistics',
@@ -961,7 +1179,23 @@ const I18N = {
     restarting:'Restarting with admin rights…',
     savedErr:'Save error:',
     pingDone:'Ping finished', connectErr:'Error:', denied:'Access denied',
-    offline:'OFFLINE', connected:'ONLINE'
+    offline:'OFFLINE', connected:'ONLINE',
+    navMessenger:'Messenger',
+    tgLoginTitle:'Sign in to Telegram', tgLoginDesc:'Phone number + code from Telegram. Everything is stored locally.',
+    tgPhone:'Phone', tgCode:'Code from Telegram', tgPass:'Cloud password (2FA)',
+    tgGetCode:'Get code', tgLoginBtn:'Sign in', tgCancel:'Cancel', tgLogout:'Log out',
+    tgRefresh:'Refresh', tgChooseChat:'Select a chat on the left', tgSearch:'Search…',
+    tgPlugins:'Plugins', tgPluginsHint:'Like in ExtraGram: put a .py into the plugins folder — commands and handlers will work.',
+    tgPluginsFolder:'Folder', tgPluginsReload:'Reload', tgPluginsFolderHint:'Data folder\\plugins\\*.py',
+    tgNeedCreds:'Enter api_id and api_hash from my.telegram.org, then the phone — the code will arrive in Telegram.',
+    tgSending:'Sending…', tgLoadingChat:'Loading…', tgErrOp:'Error:',
+    tgLoggedOut:'Logged out', tgSent:'Sent',
+    tgMediaPhoto:'Photo', tgMediaGif:'GIF', tgMediaSticker:'Sticker', tgMediaVoice:'Voice',
+    tgMediaVideo:'Video', tgMediaAudio:'Audio', tgMediaContact:'Contact', tgMediaLocation:'Location',
+    tgMediaPoll:'Poll', tgMediaInvoice:'Invoice', tgMediaGame:'Game', tgMediaFile:'File',
+    tgOpenFile:'Open file', tgDownloading:'Downloading…', tgYesterday:'yesterday', tgNoDialogs:'No chats',
+    tgBadPhone:'Enter phone number', tgBadCode:'Enter the code', tgBadPass:'Enter password',
+    tgFlood:'Too many attempts, wait', tgNoPlugins:'No plugins yet'
   }
 };
 let LANG = 'ru';
@@ -1195,6 +1429,7 @@ function switchScreen(name){
   $$('.screen').forEach(s => s.classList.toggle('active', s.dataset.screen === name));
   applyI18n();
   if (name === 'settings' || name === 'profile' || name === 'routes' || name === 'stats') refreshFromBackend();
+  if (name === 'messenger') tgSync();
 }
 
 async function refreshFromBackend(){
@@ -1460,6 +1695,451 @@ async function setRating(n){
   try { const r = await api().set_rating(n); if (r) { S = r; renderProfile(); } } catch(e){}
 }
 
+/* ============ messenger ============ */
+let TG = {
+  authorized: false,
+  phone: '',
+  me: null,
+  dialogs: [],
+  dialogMap: {},
+  messages: {},
+  senders: {},
+  thumbs: {},
+  avatars: {},
+  active: '',
+  loginStep: 'phone',
+  dialogsLoaded: false,
+  downloading: {}
+};
+function tgLoginHint(text, type){
+  const h = $('#tgLoginHint');
+  if (!h) return;
+  h.textContent = text || '';
+  h.className = 'tg-hint' + (type === 'err' ? ' err' : '');
+}
+function tgMediaLabel(mi){
+  if (!mi) return '';
+  const map = {photo:'Фото', gif:'GIF', sticker:'Стикер', voice:'Голосовое', video:'Видео', audio:'Аудио', contact:'Контакт', location:'Геолокация', poll:'Опрос', invoice:'Платёж', game:'Игра', file:'Файл'};
+  const label = map[mi.kind] || 'Файл';
+  return (mi.file && mi.kind === 'file' ? mi.file : label) + (mi.size ? ' · ' + fmtBytes(mi.size) : '');
+}
+function fmtTime(ts){
+  if (!ts) return '';
+  const d = new Date(ts * 1000);
+  const now = new Date();
+  const loc = LANG === 'ru' ? 'ru-RU' : 'en-US';
+  const hm = d.toLocaleTimeString(loc, {hour:'2-digit', minute:'2-digit'});
+  if (d.toDateString() === now.toDateString()) return hm;
+  return d.toLocaleDateString(loc, {day:'numeric', month:'short'}) + ' ' + hm;
+}
+function setAva(el, data, title){
+  if (!el) return;
+  if (data) {
+    el.classList.remove('placeholder');
+    el.style.backgroundImage = 'url(' + data + ')';
+    el.style.backgroundSize = 'cover';
+    el.style.backgroundPosition = 'center';
+    el.textContent = '';
+  } else {
+    el.classList.add('placeholder');
+    el.style.backgroundImage = '';
+    el.textContent = ((title || '?').trim().charAt(0) || '?').toUpperCase();
+  }
+}
+function renderMsgr(){
+  const login = $('#msgrLogin'), main = $('#msgrMain');
+  login.hidden = TG.authorized;
+  main.hidden = !TG.authorized;
+  if (TG.authorized) {
+    const name = ((TG.me && (TG.me.first + ' ' + (TG.me.last || '')).trim()) || (TG.me && TG.me.username ? '@' + TG.me.username : '') || '—');
+    $('#msgrMeName').textContent = name;
+    $('#msgrMeSub').textContent = TG.phone || (TG.me && TG.me.username ? '@' + TG.me.username : '');
+    setAva($('#msgrMeAva'), TG.avatars['me'], name);
+    renderDialogList();
+    if (TG.active) renderChat();
+    else {
+      $('#chatTitle').textContent = '—';
+      $('#chatSub').textContent = '';
+      $('#chatBody').innerHTML = '<div class="empty-state">' + esc(t('tgChooseChat')) + '</div>';
+    }
+  } else {
+    $('#tgCodeWrap').hidden = TG.loginStep !== 'code';
+    $('#tgPassWrap').hidden = TG.loginStep !== 'password';
+    $('#tgSendCodeBtn').hidden = TG.loginStep !== 'phone';
+    $('#tgLoginBtn').hidden = TG.loginStep === 'phone';
+    $('#tgLoginCancelBtn').hidden = TG.loginStep === 'phone';
+  }
+}
+function renderDialogList(){
+  const list = $('#dialogList');
+  const q = (($('#msgrSearch').value || '').trim()).toLowerCase();
+  let items = TG.dialogs;
+  if (q) items = items.filter(d => (d.title || '').toLowerCase().indexOf(q) !== -1 || (d.username || '').toLowerCase().indexOf(q) !== -1);
+  if (!items.length) {
+    list.innerHTML = '<div class="dlg-empty">' + esc(t('tgNoDialogs')) + '</div>';
+    return;
+  }
+  list.innerHTML = items.map(d => {
+    const unread = d.unread ? '<div class="dlg-unread">' + d.unread + '</div>' : '';
+    return '<div class="msgr-dialog' + (d.id === TG.active ? ' active' : '') + '" data-peer="' + esc(d.id) + '">' +
+      '<div class="dlg-ava placeholder" id="ava_' + esc(d.id) + '">' + esc(((d.title || '?').trim().charAt(0) || '?').toUpperCase()) + '</div>' +
+      '<div class="dlg-meta">' +
+        '<div class="dlg-top"><span class="dlg-title">' + esc(d.title || '') + '</span><span class="dlg-time">' + esc(fmtTime(d.date)) + '</span></div>' +
+        '<div class="dlg-bottom"><span class="dlg-last">' + esc(d.last || '') + '</span>' + unread + '</div>' +
+      '</div></div>';
+  }).join('');
+  items.forEach(d => { const av = TG.avatars[d.id]; if (av) setAva($('#ava_' + d.id), av, d.title); });
+}
+function msgEl(ev){
+  const el = document.createElement('div');
+  el.className = 'msg' + (ev.out ? ' out' : '') + (ev.plug ? ' plug' : '');
+  if (ev.plug) el.insertAdjacentHTML('beforeend', '<span class="msg-tag">🤖 plugin</span>');
+  else if (!ev.out && ev.sender && TG.active && (TG.dialogMap[TG.active] || {}).type !== 'user') {
+    el.insertAdjacentHTML('beforeend', '<span class="msg-sender">' + esc(ev.sender) + '</span>');
+  }
+  if (ev.text) {
+    const t = document.createElement('div');
+    t.textContent = ev.text;
+    el.appendChild(t);
+  }
+  if (ev.media && ev.media.kind && ev.media.kind !== 'link') {
+    const peer = ev.peer_id || TG.active;
+    const thumb = (TG.thumbs[peer] || {})[ev.id];
+    if (ev.media.kind === 'photo' && thumb) {
+      const img = document.createElement('img');
+      img.className = 'msg-photo';
+      img.src = thumb;
+      img.dataset.peer = peer;
+      img.dataset.msg = ev.id;
+      img.onclick = () => tgDownload(peer, ev.id);
+      el.appendChild(img);
+    } else {
+      el.appendChild(mediaEl(ev, peer));
+    }
+  }
+  el.insertAdjacentHTML('beforeend', '<span class="msg-time">' + esc(fmtTime(ev.date)) + '</span>');
+  return el;
+}
+function mediaEl(ev, peer){
+  const wrap = document.createElement('div');
+  wrap.className = 'msg-media';
+  wrap.dataset.peer = peer;
+  wrap.dataset.msg = ev.id;
+  wrap.onclick = () => tgDownload(peer, ev.id);
+  const mi = ev.media || {};
+  const icon = document.createElement('span');
+  icon.className = 'mm-icon';
+  icon.textContent = mi.kind === 'photo' ? '🖼' : mi.kind === 'sticker' ? '🎴' : mi.kind === 'gif' ? '🎞' : mi.kind === 'voice' ? '🎙' : mi.kind === 'video' ? '🎬' : '📄';
+  const name = document.createElement('span');
+  name.className = 'mm-name';
+  name.textContent = tgMediaLabel(mi);
+  const sz = document.createElement('span');
+  sz.className = 'mm-size';
+  sz.textContent = mi.size ? fmtBytes(mi.size) : '';
+  wrap.append(icon, name, sz);
+  return wrap;
+}
+function renderChatHead(dlg){
+  if (!dlg) { $('#chatTitle').textContent = '—'; $('#chatSub').textContent = ''; return; }
+  $('#chatTitle').textContent = dlg.title || '—';
+  const sub = dlg.username ? '@' + dlg.username : ({user:'', group:'Группа', channel:'Канал', bot:'Бот'}[dlg.type] || '');
+  $('#chatSub').textContent = sub;
+  setAva($('#chatAva'), TG.avatars[TG.active], dlg.title);
+}
+function renderChat(){
+  const body = $('#chatBody');
+  const peer = TG.active;
+  const dlg = TG.dialogMap[peer];
+  renderChatHead(dlg);
+  if (!peer) { body.innerHTML = '<div class="empty-state">' + esc(t('tgChooseChat')) + '</div>'; return; }
+  const msgs = TG.messages[peer];
+  if (!msgs) { body.innerHTML = '<div class="empty-state">' + esc(t('tgLoadingChat')) + '</div>'; return; }
+  body.innerHTML = '';
+  let lastDay = '';
+  msgs.forEach(m => {
+    const dd = new Date((m.date || 0) * 1000);
+    const day = dd.toDateString();
+    if (day !== lastDay) {
+      lastDay = day;
+      const sep = document.createElement('div');
+      sep.className = 'chat-day';
+      sep.textContent = dd.toLocaleDateString(LANG === 'ru' ? 'ru-RU' : 'en-US', {day:'numeric', month:'long'});
+      body.appendChild(sep);
+    }
+    body.appendChild(msgEl(m));
+  });
+  body.scrollTop = body.scrollHeight;
+}
+function tgAddMessage(ev){
+  const peer = ev.peer_id;
+  if (!peer) return;
+  if (!TG.dialogMap[peer]) {
+    const d = {id: peer, title: ev.peer_title || '…', type: ev.peer_type || 'user', unread: 0, last: '', date: ev.date || 0, username: ''};
+    TG.dialogMap[peer] = d;
+    TG.dialogs.unshift(d);
+  }
+  if (!TG.messages[peer]) TG.messages[peer] = [];
+  if (TG.messages[peer].some(m => m.id === ev.id)) return;
+  TG.messages[peer].push(ev);
+  const d = TG.dialogMap[peer];
+  d.last = ev.text || tgMediaLabel(ev.media) || '…';
+  d.date = ev.date || d.date;
+  d.unread = (d.unread || 0) + (ev.out ? 0 : 1);
+  TG.dialogs = TG.dialogs.filter(x => x.id !== peer);
+  TG.dialogs.unshift(d);
+  renderDialogList();
+  if (screen === 'messenger') {
+    if (TG.active === peer) renderChat();
+    else if (!ev.out && ev.text !== null && ev.text !== undefined) {
+      toast(((d.title || '') + ': ' + (ev.text || tgMediaLabel(ev.media))).slice(0, 80), 'accent');
+    }
+  }
+}
+function tgAddPluginReply(ev){
+  const peer = ev.peer_id;
+  if (!peer) return;
+  if (!TG.messages[peer]) TG.messages[peer] = [];
+  const m = {id: 'plug' + Date.now(), out: true, plug: true, text: ev.text, date: Date.now() / 1000, peer_id: peer, media: null};
+  TG.messages[peer].push(m);
+  if (screen === 'messenger' && TG.active === peer) renderChat();
+}
+function tgSetThumb(peer, msgId){
+  const body = $('#chatBody');
+  if (!body || peer !== TG.active) return;
+  const prev = body.scrollTop;
+  renderChat();
+  if (TG.messages[peer] && TG.messages[peer].length) body.scrollTop = body.scrollHeight;
+}
+function renderAvatars(){
+  if (TG.avatars['me'] && $('#msgrMeAva')) setAva($('#msgrMeAva'), TG.avatars['me'], $('#msgrMeName').textContent);
+  TG.dialogs.forEach(d => { const el = $('#ava_' + d.id); if (el && TG.avatars[d.id]) setAva(el, TG.avatars[d.id], d.title); });
+  if (TG.active && TG.avatars[TG.active] && $('#chatAva')) setAva($('#chatAva'), TG.avatars[TG.active], $('#chatTitle').textContent);
+}
+function tgPush(ev){
+  if (!ev || !ev.type) return;
+  switch (ev.type) {
+    case 'need_credentials': TG.loginStep = 'phone'; tgLoginHint(t('tgNeedCreds'), ''); renderMsgr(); break;
+    case 'not_authorized':
+      TG.authorized = false; TG.me = null; TG.dialogs = []; TG.dialogMap = {}; TG.messages = {}; TG.senders = {}; TG.thumbs = {}; TG.active = ''; TG.dialogsLoaded = false;
+      renderMsgr(); break;
+    case 'ready':
+      TG.authorized = true; TG.me = ev.me || TG.me || {};
+      renderMsgr(); tgSyncPlugins(); break;
+    case 'login_code': TG.loginStep = 'code'; tgLoginHint('', ''); renderMsgr(); break;
+    case 'login_password': TG.loginStep = 'password'; tgLoginHint('', ''); renderMsgr(); break;
+    case 'dialogs':
+      TG.dialogs = ev.dialogs || []; TG.dialogMap = {}; TG.dialogsLoaded = true;
+      TG.dialogs.forEach(d => { TG.dialogMap[d.id] = d; });
+      renderDialogList(); renderAvatars(); break;
+    case 'messages':
+      TG.messages[ev.peer_id] = ev.messages || []; TG.senders[ev.peer_id] = TG.senders[ev.peer_id] || {};
+      if (screen === 'messenger' && TG.active === ev.peer_id) renderChat(); break;
+    case 'senders':
+      TG.senders[ev.peer_id] = TG.senders[ev.peer_id] || {};
+      (ev.senders || []).forEach(s => { TG.senders[ev.peer_id][s.id] = s.name; });
+      if (screen === 'messenger' && TG.active === ev.peer_id) {
+        const m = TG.messages[ev.peer_id];
+        if (m) m.forEach(x => { if (!x.sender && x.sender_id != null) x.sender = TG.senders[ev.peer_id][x.sender_id]; });
+        renderChat();
+      }
+      break;
+    case 'message': tgAddMessage(ev); break;
+    case 'sent': tgAddMessage(ev); break;
+    case 'plugin_reply': tgAddPluginReply(ev); break;
+    case 'thumb':
+      TG.thumbs[ev.peer_id] = TG.thumbs[ev.peer_id] || {};
+      TG.thumbs[ev.peer_id][ev.msg_id] = ev.data;
+      if (screen === 'messenger' && TG.active === ev.peer_id) tgSetThumb(ev.peer_id, ev.msg_id);
+      break;
+    case 'avatar':
+      TG.avatars[ev.peer_id] = ev.data; renderAvatars(); break;
+    case 'media': tgGotMedia(ev); break;
+    case 'error': tgHandleError(ev); break;
+  }
+}
+function tgGotMedia(ev){
+  TG.downloading = {};
+  if (ev.error) { toast(t('tgErrOp') + ' ' + ev.error, 'err'); return; }
+  if (ev.data) {
+    const img = $('#photoViewerImg');
+    if (img) { img.src = ev.data; $('#photoViewer').hidden = false; }
+  } else if (ev.path) {
+    toast(t('tgOpenFile'), 'ok');
+    if (api()) api().tg_open_media(ev.path).catch(() => {});
+  }
+}
+function tgHandleError(ev){
+  let msg = ev.text || '';
+  if (ev.op === 'login') {
+    const map = {bad_phone: t('tgBadPhone'), bad_code: t('tgBadCode'), code_expired: t('tgBadCode'), bad_password: t('tgBadPass'), need_credentials: t('tgNeedCreds')};
+    if (map[msg]) msg = map[msg];
+    else if (String(msg).indexOf('flood_') === 0) msg = t('tgFlood') + ' ' + String(msg).replace('flood_', '') + 's';
+    tgLoginHint(msg, 'err');
+  }
+  if (msg) toast(t('tgErrOp') + ' ' + msg, 'err');
+}
+async function tgSync(){
+  if (!api()) return;
+  try {
+    const st = await api().tg_state();
+    if (!st) return;
+    TG.authorized = !!st.authorized;
+    if (st.phone) TG.phone = st.phone;
+    if (st.me && st.me.id) TG.me = st.me;
+    if (!TG.authorized && !st.has_credentials) tgLoginHint(t('tgNeedCreds'), '');
+    renderMsgr();
+    if (TG.authorized && !TG.dialogsLoaded) api().tg_refresh().catch(() => {});
+    if (TG.authorized) tgSyncPlugins();
+  } catch(e){}
+}
+async function tgLoginStart(){
+  if (!api()) return;
+  const phone = $('#tgPhone').value.trim();
+  const apiId = $('#tgApiId').value.trim();
+  const apiHash = $('#tgApiHash').value.trim();
+  if (!phone) { tgLoginHint(t('tgBadPhone'), 'err'); return; }
+  tgLoginHint(t('tgSending'), '');
+  try {
+    const r = await api().tg_login(phone, apiId, apiHash);
+    if (r && r.ok === false) tgLoginHint(t('tgErrOp'), 'err');
+  } catch(e){ tgLoginHint(t('tgErrOp') + ' ' + e, 'err'); }
+}
+async function tgLoginNext(){
+  if (!api()) return;
+  if (TG.loginStep === 'code') {
+    const code = $('#tgCode').value.trim();
+    if (!code) { tgLoginHint(t('tgBadCode'), 'err'); return; }
+    tgLoginHint(t('tgSending'), '');
+    try { const r = await api().tg_code(code); if (r && r.ok === false) tgLoginHint(t('tgErrOp'), 'err'); } catch(e){ tgLoginHint(t('tgErrOp') + ' ' + e, 'err'); }
+  } else if (TG.loginStep === 'password') {
+    const pass = $('#tgPass').value;
+    if (!pass) { tgLoginHint(t('tgBadPass'), 'err'); return; }
+    tgLoginHint(t('tgSending'), '');
+    try { const r = await api().tg_password(pass); if (r && r.ok === false) tgLoginHint(t('tgErrOp'), 'err'); } catch(e){ tgLoginHint(t('tgErrOp') + ' ' + e, 'err'); }
+  }
+}
+function tgLoginCancel(){
+  TG.loginStep = 'phone';
+  $('#tgCode').value = '';
+  $('#tgPass').value = '';
+  tgLoginHint('', '');
+  renderMsgr();
+}
+async function tgLogout(){
+  if (!api()) return;
+  try { await api().tg_logout(); } catch(e){}
+  TG.authorized = false; TG.me = null; TG.dialogs = []; TG.dialogMap = {}; TG.messages = {}; TG.thumbs = {}; TG.active = ''; TG.dialogsLoaded = false;
+  toast(t('tgLoggedOut'), 'ok');
+  renderMsgr();
+}
+async function tgOpen(peer){
+  if (peer === TG.active) return;
+  TG.active = peer;
+  TG.messages[peer] = null;
+  renderDialogList();
+  renderChat();
+  if (api()) api().tg_open(peer).catch(() => {});
+}
+function tgDownload(peer, msgId){
+  if (!api() || !peer || msgId == null) return;
+  const key = peer + ':' + msgId;
+  if (TG.downloading[key]) return;
+  TG.downloading[key] = true;
+  toast(t('tgDownloading'), 'accent');
+  api().tg_download(peer, msgId).catch(() => {});
+}
+async function tgSend(){
+  const ta = $('#chatInput');
+  const text = ta.value.trim();
+  if (!text || !TG.active || !api()) return;
+  ta.value = '';
+  autoGrowInput();
+  try { await api().tg_send(TG.active, text); } catch(e){ toast(t('tgErrOp') + ' ' + e, 'err'); }
+}
+function tgSendFile(){
+  if (!TG.active) return;
+  const f = $('#chatFile').files[0];
+  if (!f) return;
+  if (f.size > 50 * 1024 * 1024) { toast(t('tgErrOp') + ' >50MB', 'err'); return; }
+  const rd = new FileReader();
+  rd.onload = async () => {
+    const b64 = String(rd.result).split(',', 2)[1];
+    toast(t('tgSending'), 'accent');
+    try { await api().tg_send_file(TG.active, f.name, b64); } catch(e){ toast(t('tgErrOp') + ' ' + e, 'err'); }
+  };
+  rd.readAsDataURL(f);
+}
+function autoGrowInput(){
+  const ta = $('#chatInput');
+  if (!ta) return;
+  ta.style.height = 'auto';
+  ta.style.height = Math.min(140, Math.max(42, ta.scrollHeight)) + 'px';
+}
+async function openPlugins(){
+  $('#pluginModal').hidden = false;
+  try { const r = await api().tg_plugins_list(); if (r) renderPluginList(r.plugins); } catch(e){}
+}
+function renderPluginList(plugins){
+  const box = $('#pluginListModal');
+  if (!plugins || !plugins.length) { box.innerHTML = '<div class="empty-state">' + esc(t('tgNoPlugins')) + '</div>'; return; }
+  box.innerHTML = plugins.map((p, i) =>
+    '<div class="plugin-item">' +
+      '<div class="pi-main">' +
+        '<div class="pi-name">' + esc(p.name) + (p.version ? '<span class="pi-ver">v' + esc(p.version) + '</span>' : '') + '</div>' +
+        '<div class="pi-desc">' + esc(p.description || p.file) + '</div>' +
+        (p.error ? '<div class="pi-err">' + esc(p.error) + '</div>' : '') +
+      '</div>' +
+      '<label class="switch"><input type="checkbox" data-file="' + esc(p.file) + '"' + (p.enabled ? ' checked' : '') + '><span class="track"></span></label>' +
+    '</div>'
+  ).join('');
+}
+function renderPluginListSmall(plugins){
+  const box = $('#pluginListSmall');
+  if (!plugins || !plugins.length) { box.innerHTML = '<div class="empty-state" style="padding:14px 0">' + esc(t('tgNoPlugins')) + '</div>'; return; }
+  box.innerHTML = plugins.map(p =>
+    '<div class="plugin-item" style="padding:8px 10px">' +
+      '<div class="pi-main"><div class="pi-name" style="font-size:12px">' + esc(p.name) + '</div>' +
+      '<div class="pi-desc">' + esc(p.description || p.file) + '</div>' +
+      (p.error ? '<div class="pi-err">' + esc(p.error) + '</div>' : '') +
+      '</div></div>'
+  ).join('');
+}
+async function tgSyncPlugins(){
+  if (!api()) return;
+  try { const r = await api().tg_plugins_list(); if (r) renderPluginListSmall(r.plugins); } catch(e){}
+}
+function initMsgrEvents(){
+  $('#tgSendCodeBtn').addEventListener('click', tgLoginStart);
+  $('#tgLoginBtn').addEventListener('click', tgLoginNext);
+  $('#tgLoginCancelBtn').addEventListener('click', tgLoginCancel);
+  $('#tgPhone').addEventListener('keydown', e => { if (e.key === 'Enter' && TG.loginStep === 'phone') tgLoginStart(); });
+  $('#tgCode').addEventListener('keydown', e => { if (e.key === 'Enter' && TG.loginStep === 'code') tgLoginNext(); });
+  $('#tgPass').addEventListener('keydown', e => { if (e.key === 'Enter' && TG.loginStep === 'password') tgLoginNext(); });
+  $('#dialogList').addEventListener('click', e => { const d = e.target.closest('[data-peer]'); if (d) tgOpen(d.dataset.peer); });
+  $('#chatSendBtn').addEventListener('click', tgSend);
+  $('#chatInput').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); tgSend(); } });
+  $('#chatInput').addEventListener('input', autoGrowInput);
+  $('#chatAttachBtn').addEventListener('click', () => $('#chatFile').click());
+  $('#chatFile').addEventListener('change', tgSendFile);
+  $('#msgrLogoutBtn').addEventListener('click', tgLogout);
+  $('#msgrPluginsBtn').addEventListener('click', openPlugins);
+  $('#pluginModalClose').addEventListener('click', () => $('#pluginModal').hidden = true);
+  $('#pluginReloadBtn').addEventListener('click', async () => { if (!api()) return; try { const r = await api().tg_plugins_reload(); if (r) renderPluginList(r.plugins); } catch(e){} });
+  $('#pluginReloadBtn2').addEventListener('click', async () => { if (!api()) return; try { const r = await api().tg_plugins_reload(); if (r) { renderPluginListSmall(r.plugins); renderPluginList(r.plugins); $('#pluginModal').hidden = false; } } catch(e){} });
+  $('#pluginOpenFolderBtn').addEventListener('click', () => { if (api()) api().tg_plugins_open_folder().catch(() => {}); });
+  $('#pluginOpenFolderBtn2').addEventListener('click', () => { if (api()) api().tg_plugins_open_folder().catch(() => {}); });
+  $('#msgrRefreshBtn').addEventListener('click', () => { if (api()) api().tg_refresh().catch(() => {}); });
+  $('#msgrSearch').addEventListener('input', renderDialogList);
+  $('#photoViewer').addEventListener('click', () => { $('#photoViewer').hidden = true; });
+  $('#pluginListModal').addEventListener('change', e => {
+    const cb = e.target;
+    if (!cb || !cb.matches('input[type=checkbox]')) return;
+    const file = cb.dataset.file;
+    const on = cb.checked;
+    if (api()) api().tg_plugin_toggle(file, on).then(r => { if (r) renderPluginList(r.plugins); }).catch(() => {});
+  });
+}
+
 /* ============ news ============ */
 let newsData = null;
 async function checkNews(){
@@ -1569,6 +2249,13 @@ window.__pushLog = (line) => {
   else { logBuf += line + '\n'; if (logBuf.length > 20000) logBuf = logBuf.slice(-20000); }
 };
 window.__pushHint = (text) => { if (text) toast(text, 'warn'); };
+window.__tgPush = (ev) => tgPush(ev);
+window.__pluginPush = (action, data) => {
+  if (action && typeof action === 'object' && action.type) { tgPush(action); return; }
+  if (action === 'toast' || action === 'notify') { if (data) toast(String(data), 'accent'); return; }
+  tgPush({ type: String(action), data: data });
+};
+window.__tgToast = (text) => { if (text) toast(text, 'accent'); };
 
 /* ============ events ============ */
 $$('.nav-item').forEach(b => b.addEventListener('click', () => switchScreen(b.dataset.screen)));
@@ -1707,6 +2394,8 @@ async function init(){
     try { const r = await api().get_font(); if (r && r.data) applyCustomFont(r.data); } catch(e){}
   }
   checkNews();
+  initMsgrEvents();
+  tgSync();
   setInterval(() => {
     if (!document.hidden && api()) refreshFromBackend();
   }, 3000);

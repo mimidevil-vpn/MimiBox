@@ -19,6 +19,8 @@ import win_proxy
 import storage
 import tun
 import tg_link
+import plugins as plugins_mod
+from tg_client import TgMessenger
 
 # Эмодзи, которое подмигивает возле названия. Меняется раз в час.
 EMOJI_POOL = ["🧊", "❄️", "🐧", "🌊", "⚡", "🛡️", "🚀", "🌙", "✨", "🔒",
@@ -50,6 +52,25 @@ class Api:
         self._last_hint = ""
         self._stats_thread = None
         self._stop_stats = threading.Event()
+
+        # ---- мессенджер и плагины ----
+        self._plugins = plugins_mod.PluginManager(
+            folder=os.path.join(storage.data_dir(), "plugins"),
+            is_enabled=self._plugin_is_enabled,
+            set_enabled=self._plugin_set_enabled,
+            log=storage.log,
+        )
+        self._plugins.set_ctx_builder(self._plugin_ctx)
+        self._tg = TgMessenger(
+            session_dir=storage.data_dir(),
+            on_event=self._tg_event,
+            log=storage.log,
+            get_credentials=self._tg_creds,
+        )
+        self._tg.set_hooks(on_before_send=self._tg_before_send,
+                           on_incoming=self._tg_incoming)
+        threading.Thread(target=self._plugins.reload_all, daemon=True).start()
+        self._tg.start()
 
         # Все вызовы в JS идут через одну очередь и один поток. Раньше логи ядра,
         # статистика и пинги дёргали evaluate_js параллельно — WebView2 от этого
@@ -172,6 +193,7 @@ class Api:
             "background_image": self.settings.get("background_image", ""),
             "conflicts": list(self._conflicts),
             "sub": self._sub_info(),
+            "tg": self._tg.status(),
             "save_error": self._save_error,
             "data_dir": storage.data_dir(),
             "speed": {"up": self._speed[0], "down": self._speed[1],
@@ -481,6 +503,159 @@ class Api:
         self._save()
         return {"ok": True, "state": self._state()}
 
+    # ------------------------------------------------------------ мессенджер
+    def _tg_creds(self):
+        return {
+            "api_id": self.settings.get("tg_api_id", ""),
+            "api_hash": self.settings.get("tg_api_hash", ""),
+        }
+
+    def _tg_event(self, ev):
+        """Каждое событие мессенджера уходит в JS одним JSON."""
+        try:
+            self._push("window.__tgPush(%s)" % json.dumps(ev, ensure_ascii=False))
+        except Exception:
+            pass
+
+    def _tg_toast(self, text):
+        try:
+            self._push("window.__tgToast(%s)" % json.dumps(str(text), ensure_ascii=False))
+        except Exception:
+            pass
+
+    def _tg_before_send(self, ev):
+        """Перед отправкой сообщения: даём плагинам перехватить команды."""
+        handled, reply = self._plugins.dispatch_command(ev.get("text", ""), ev)
+        if handled and reply:
+            self._tg_event({"type": "plugin_reply", "peer_id": ev.get("peer_id"),
+                            "text": reply})
+        return {"handled": handled, "reply": reply}
+
+    def _tg_incoming(self, ev):
+        self._plugins.dispatch_message(ev)
+
+    def _plugin_is_enabled(self, name):
+        try:
+            return bool((self.settings.get("plugin_enabled") or {}).get(name, True))
+        except Exception:
+            return True
+
+    def _plugin_set_enabled(self, name, on):
+        cur = dict(self.settings.get("plugin_enabled") or {})
+        cur[str(name)] = bool(on)
+        self.settings["plugin_enabled"] = cur
+        self._save()
+
+    def _plugin_ctx(self, name):
+        return plugins_mod.PluginCtx(
+            name,
+            send_async=self._tg.asend_text,
+            me_fn=self._tg.me_json,
+            notify_fn=self._tg_toast,
+            ui_fn=self._plugin_ui,
+        )
+
+    def _plugin_ui(self, action, data):
+        try:
+            self._push("window.__pluginPush(%s,%s)"
+                       % (json.dumps(action), json.dumps(data, ensure_ascii=False)))
+        except Exception:
+            pass
+
+    # ---- методы для JS ----
+    def tg_state(self):
+        st = self._tg.status()
+        st["me"] = self._tg.me_json()
+        st["has_credentials"] = bool(self._tg_creds()["api_id"]) or bool(
+            self._tg_creds()["api_hash"])
+        return st
+
+    def tg_login(self, phone, api_id="", api_hash=""):
+        if api_id or api_hash:
+            self.settings["tg_api_id"] = str(api_id or "").strip()
+            self.settings["tg_api_hash"] = str(api_hash or "").strip()
+            self._save()
+        ok = self._tg.login(phone, api_id, api_hash)
+        return {"ok": ok}
+
+    def tg_code(self, code):
+        return {"ok": self._tg.code(code)}
+
+    def tg_password(self, password):
+        return {"ok": self._tg.password(password)}
+
+    def tg_logout(self):
+        return {"ok": self._tg.logout()}
+
+    def tg_open(self, peer):
+        return {"ok": self._tg.open_chat(peer)}
+
+    def tg_refresh(self):
+        return {"ok": self._tg.refresh_dialogs()}
+
+    def tg_send(self, peer, text):
+        return {"ok": self._tg.send(peer, text)}
+
+    def tg_send_file(self, peer, name, data_b64):
+        """Отправка фото/файла: JS шлёт base64, пишем во временный файл."""
+        import base64 as _b64
+        name = str(name or "file").strip() or "file"
+        if not data_b64:
+            return {"ok": False}
+        try:
+            if "," in data_b64:
+                data_b64 = data_b64.split(",", 1)[1]
+            raw = _b64.b64decode(data_b64)
+        except Exception as e:
+            storage.log("[tg] не удалось декодировать файл: %s" % e)
+            return {"ok": False}
+        if not raw or len(raw) > 50 * 1024 * 1024:
+            return {"ok": False, "error": "too_big"}
+        safe = "".join(ch if ch.isalnum() or ch in "._-" else "_"
+                       for ch in name)
+        folder = os.path.join(storage.data_dir(), "tg_uploads")
+        try:
+            os.makedirs(folder, exist_ok=True)
+        except Exception:
+            pass
+        path = os.path.join(folder, "%d_%s" % (int(time.time() * 1000), safe))
+        try:
+            with open(path, "wb") as f:
+                f.write(raw)
+        except Exception as e:
+            storage.log("[tg] не удалось сохранить файл: %s" % e)
+            return {"ok": False}
+        return {"ok": self._tg.send_file(peer, path)}
+
+    def tg_download(self, peer, msg_id):
+        return {"ok": self._tg.download(peer, msg_id)}
+
+    def tg_open_media(self, path):
+        try:
+            os.startfile(path)  # type: ignore[attr-defined]
+            return {"ok": True}
+        except Exception as e:
+            return {"ok": False, "error": str(e)}
+
+    def tg_plugins_list(self):
+        return {"plugins": self._plugins.list()}
+
+    def tg_plugin_toggle(self, name, on):
+        self._plugins.set_enabled(name, bool(on))
+        return {"plugins": self._plugins.list()}
+
+    def tg_plugins_reload(self):
+        return {"plugins": self._plugins.reload_all()}
+
+    def tg_plugins_open_folder(self):
+        folder = os.path.join(storage.data_dir(), "plugins")
+        try:
+            os.makedirs(folder, exist_ok=True)
+            os.startfile(folder)  # type: ignore[attr-defined]
+            return {"ok": True}
+        except Exception as e:
+            return {"ok": False, "error": str(e)}
+
     # ------------------------------------------------------------ статистика
     def _start_stats(self):
         self._stop_stats.clear()
@@ -780,10 +955,10 @@ class Api:
 
     # ------------------------------------------------------------ новости
     def get_news(self):
-        return self._fetch_channel_news("LEDOKOL_CHANNEL")
+        return self._fetch_channel_news("mackkill")
 
     def get_support_news(self):
-        return self._fetch_channel_news("ledokol_support")
+        return self._fetch_channel_news("mackkill")
 
     def _fetch_channel_news(self, channel: str) -> dict:
         """Получить последний пост из указанного Telegram-канала."""
@@ -882,13 +1057,25 @@ class Api:
          "или закройте программу, которая их держит."),
     )
 
+    # Рабочий шум, который пользователю видеть не нужно: он пугает «ошибками»
+    # и забивает окно лога. REALITY-строку выше подменяем понятной подсказкой,
+    # остальное просто не показываем вовсе.
+    _QUIET = ("failed to read response",       # Telegram: рвётся несущее соединение
+              "wsasend: connection aborted",   # окно, закрытое сопером
+              "received real certificate",     # REALITY-строка → заменяем hint'ом
+              "accepted udp", "tunneling request to udp")
+    _QUIET_UDP_PORTS = (":137", ":138", ":139", ":1900", ":5353")
+
+    def _is_quiet(self, low):
+        if any(n in low for n in self._QUIET):
+            return True
+        if "udp:" in low and any(p in low for p in self._QUIET_UDP_PORTS):
+            return True
+        return False
+
     def _log(self, line):
         line = str(line)
         low = line.lower()
-        if not any(n in low for n in self._NOISE):
-            storage.log(line)
-        self._push("window.__pushLog(%s)" % json.dumps(line))
-
         for needle, hint in self._HINTS:
             if needle in low and hint != self._last_hint:
                 self._last_hint = hint
@@ -896,6 +1083,11 @@ class Api:
                 self._push("window.__pushLog(%s)" % json.dumps(hint))
                 self._push("window.__pushHint(%s)" % json.dumps(hint))
                 break
+        if self._is_quiet(low):
+            return
+        if not any(n in low for n in self._NOISE):
+            storage.log(line)
+        self._push("window.__pushLog(%s)" % json.dumps(line))
 
     def _push(self, js):
         """Ставит вызов в очередь. Никогда не блокирует вызывающий поток."""
