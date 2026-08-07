@@ -14,12 +14,13 @@
   --pink:#FF7ACD; --lav:#E18BFF; --violet:#C884FF;
   --text:#E8E6EC; --dim:#8A8794; --faint:#56535F;
   --line:rgba(255,255,255,.08); --line-soft:rgba(255,255,255,.05);
-  --glass:rgba(255,255,255,.028); --glass-border:rgba(255,255,255,.075);
+  --glass:rgba(22,22,26,.34); --glass-border:rgba(255,255,255,.10);
+  --blur:18px;
   --accent-grad:linear-gradient(135deg,#FF7ACD 0%,#E18BFF 55%,#C884FF 100%);
   --glow-pink:rgba(255,122,205,.28);
   --glow-lav:rgba(225,139,255,.22);
   --r-sm:14px; --r-md:18px; --r-lg:26px;
-  --sidebar-w:208px;
+  --sidebar-w:236px;
   --ease:cubic-bezier(.22,.61,.36,1);
 }
 body.theme-light{
@@ -45,22 +46,12 @@ input,textarea,select{font-family:inherit;color:inherit}
 
 /* ---------- background layers ---------- */
 .bg{position:fixed;inset:0;z-index:0;overflow:hidden;background:var(--bg0)}
-.bg-scene{position:absolute;pointer-events:none;color:#fff;transition:opacity .4s var(--ease);opacity:0}
-.bg-rooftop{right:-5%;top:2%;width:58vw;height:80vh;mix-blend-mode:screen}
-.bg-arch{left:-7%;bottom:-3%;width:36vw;height:90vh;mix-blend-mode:screen}
-.bg-street{left:0;bottom:0;width:100vw;height:26vh;mix-blend-mode:screen}
-.bg-sakura{left:-2%;top:0;width:46vw;height:72vh;mix-blend-mode:screen}
-.bg-stars{left:0;top:0;width:100vw;height:60vh;mix-blend-mode:screen}
-body[data-scene="rooftop"] .bg-rooftop{opacity:.055}
-body[data-scene="arch"] .bg-arch{opacity:.05}
-body[data-scene="street"] .bg-street{opacity:.045}
-body[data-scene="sakura"] .bg-sakura{opacity:.06}
-body[data-scene="stars"] .bg-stars{opacity:.07}
-body.theme-light[data-scene="rooftop"] .bg-rooftop{opacity:.035}
-body.theme-light[data-scene="arch"] .bg-arch{opacity:.032}
-body.theme-light[data-scene="street"] .bg-street{opacity:.03}
-body.theme-light[data-scene="sakura"] .bg-sakura{opacity:.04}
-body.theme-light[data-scene="stars"] .bg-stars{opacity:.05}
+
+#wallpaper{position:fixed;inset:0;z-index:1;display:none;background-size:cover;background-position:center;opacity:.82}
+#wallpaper.on{display:block}
+#wallpaper::after{content:"";position:absolute;inset:0;
+  background:linear-gradient(180deg,rgba(10,10,12,.22),rgba(10,10,12,.05) 45%,rgba(10,10,12,.22))}
+body.theme-light #wallpaper::after{background:linear-gradient(180deg,rgba(255,255,255,.18),rgba(255,255,255,.05) 45%,rgba(255,255,255,.22))}
 
 /* ---------- галлереи сцен и шрифтов ---------- */
 .scene-gallery{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;flex:1;min-width:220px}
@@ -72,12 +63,6 @@ body.theme-light[data-scene="stars"] .bg-stars{opacity:.05}
 .scene-item.on{background:rgba(225,139,255,.12);border-color:var(--lav);color:#fff;box-shadow:0 0 18px rgba(225,139,255,.18)}
 .scene-item.font-item .si-prev{font-size:15px;line-height:1.15;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700}
 .scene-item.font-item .si-name{font-size:9px}
-
-#wallpaper{position:fixed;inset:0;z-index:1;background-size:cover;background-position:center;opacity:.28;filter:blur(1px);display:none}
-#wallpaper.on{display:block}
-body.bg-scene #wallpaper{opacity:.5}
-body.has-bg .glass{background:rgba(255,255,255,.055);border-color:rgba(255,255,255,.105)}
-body.has-bg.theme-light .glass{background:rgba(255,255,255,.8)}
 
 #particles{position:fixed;inset:0;z-index:2;pointer-events:none}
 
@@ -125,7 +110,10 @@ body.has-bg.theme-light .glass{background:rgba(255,255,255,.8)}
 /* ---------- content ---------- */
 .content{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden}
 .topbar{flex:none;display:flex;align-items:center;justify-content:space-between;gap:12px;
-  padding:18px 28px 14px;border-bottom:1px solid var(--line-soft)}
+  padding:18px 28px 14px;border-bottom:1px solid var(--line-soft);
+  background:linear-gradient(180deg,rgba(15,15,16,.82),rgba(15,15,16,.55));
+  backdrop-filter:blur(var(--blur))}
+body.theme-light .topbar{background:linear-gradient(180deg,rgba(255,255,255,.88),rgba(255,255,255,.62))}
 .topbar-title{font-size:13px;font-weight:800;letter-spacing:.22em;text-transform:uppercase;color:var(--faint)}
 .topbar-right{display:flex;align-items:center;gap:16px}
 .conflict-chip{display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;
@@ -141,15 +129,15 @@ body.has-bg.theme-light .glass{background:rgba(255,255,255,.8)}
 
 .screens{flex:1;overflow-y:auto;padding:26px 32px 44px}
 .screen{display:none}
-.screen.active{display:block;animation:fadeUp .28s var(--ease)}
-@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.screen.active{display:block;animation:screenIn .22s var(--ease)}
+@keyframes screenIn{from{transform:translateY(8px)}to{transform:none}}
 
 /* ---------- shared bits ---------- */
-h2.screen-title{font-size:21px;font-weight:800;letter-spacing:.01em;margin-bottom:4px}
-.screen-desc{color:var(--dim);font-size:13px;margin-bottom:24px}
+h2.screen-title{font-size:21px;font-weight:800;letter-spacing:.01em;margin-bottom:4px;text-shadow:0 1px 10px rgba(0,0,0,.55)}
+.screen-desc{color:var(--dim);font-size:13px;margin-bottom:24px;text-shadow:0 1px 8px rgba(0,0,0,.5)}
 .glass{
   background:var(--glass);border:1px solid var(--glass-border);border-radius:var(--r-md);
-  backdrop-filter:blur(14px);
+  backdrop-filter:blur(var(--blur));
   transition:transform .2s var(--ease),box-shadow .2s var(--ease),border-color .2s var(--ease);
 }
 .glass.hover:hover{transform:translateY(-2px) scale(1.012);border-color:rgba(225,139,255,.22);box-shadow:0 8px 34px rgba(0,0,0,.35),0 0 22px var(--glow-lav)}
@@ -472,7 +460,8 @@ select.input{appearance:none;background-image:linear-gradient(45deg,transparent 
 .msgr-plugins-card .plugins-note{font-size:12px;color:var(--faint);margin:10px 0 12px;line-height:1.5}
 
 .msgr-main{flex:1;display:flex;min-height:0}
-.msgr-dialogs{width:272px;flex:none;display:flex;flex-direction:column;border-right:1px solid var(--line-soft);background:var(--glass);min-height:0}
+.msgr-dialogs{width:272px;flex:none;display:flex;flex-direction:column;border-right:1px solid var(--line-soft);
+  background:rgba(15,15,16,.34);backdrop-filter:blur(var(--blur));min-height:0}
 .msgr-dialogs-head{padding:14px 14px 10px;border-bottom:1px solid var(--line-soft)}
 .msgr-me{display:flex;align-items:center;gap:10px;padding-bottom:10px}
 .msgr-me .tg-avatar{width:38px;height:38px;border-radius:50%;font-size:15px}
@@ -509,8 +498,10 @@ select.input{appearance:none;background-image:linear-gradient(45deg,transparent 
 .dlg-arch-head:hover{color:var(--text)}
 .dlg-arch-arrow{font-size:10px;color:var(--faint)}
 
-.msgr-chat{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0}
-.msgr-chat-head{flex:none;display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid var(--line-soft)}
+.msgr-chat{flex:1;display:flex;flex-direction:column;min-width:0;min-height:0;
+  background:rgba(15,15,16,.22);backdrop-filter:blur(var(--blur))}
+.msgr-chat-head{flex:none;display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid var(--line-soft);
+  background:rgba(15,15,16,.42)}
 .msgr-chat-head .tg-avatar{width:36px;height:36px;border-radius:50%;font-size:14px}
 .msgr-chat-title{font-weight:800;font-size:14px}
 .msgr-chat-sub{font-size:11px;color:var(--dim);margin-top:1px}
@@ -578,13 +569,19 @@ audio.msg-voice{max-width:260px;height:40px;margin-top:4px;border-radius:14px;ba
 .msg-menu button:hover{background:rgba(225,139,255,.14)}
 .msg-menu button span{white-space:nowrap}
 
-.msgr-chat-input{flex:none;display:flex;align-items:flex-end;gap:8px;padding:12px 16px;border-top:1px solid var(--line-soft)}
+.msgr-chat-input{flex:none;display:flex;align-items:flex-end;gap:8px;padding:12px 16px;border-top:1px solid var(--line-soft);
+  background:rgba(15,15,16,.42)}
 .msgr-chat-input textarea{flex:1;resize:none;min-height:42px;max-height:140px;padding:10px 13px;font-size:13px;line-height:1.4;border-radius:16px}
 #chatSendBtn{width:42px;height:42px;flex:none;border-radius:50%;font-size:15px;padding:0}
 #chatAttachBtn{width:42px;height:42px;flex:none;border-radius:50%;font-size:17px;padding:0}
 #chatStickerBtn{width:42px;height:42px;flex:none;border-radius:50%;font-size:16px;padding:0}
 .msgr-composer{flex:none}
-.msgr-picker{border-top:1px solid var(--line-soft);background:rgba(20,20,24,.55);backdrop-filter:blur(8px)}
+.msgr-picker{border-top:1px solid var(--line-soft);background:rgba(15,15,16,.55);backdrop-filter:blur(var(--blur))}
+body.theme-light .msgr-dialogs{background:rgba(255,255,255,.55)}
+body.theme-light .msgr-chat{background:rgba(255,255,255,.4)}
+body.theme-light .msgr-chat-head{background:rgba(255,255,255,.6)}
+body.theme-light .msgr-chat-input{background:rgba(255,255,255,.6)}
+body.theme-light .msgr-picker{background:rgba(255,255,255,.75)}
 .picker-head{display:flex;align-items:center;gap:6px;padding:8px 14px}
 .picker-tab{background:none;border:none;color:var(--dim);font-size:11px;font-weight:800;letter-spacing:.1em;padding:6px 12px;border-radius:999px;cursor:pointer;transition:all .2s var(--ease)}
 .picker-tab.on{background:rgba(225,139,255,.14);color:#fff}
@@ -632,144 +629,6 @@ audio.msg-voice{max-width:260px;height:40px;margin-top:4px;border-radius:14px;ba
 <body>
 
 <div class="bg" aria-hidden="true">
-  <svg class="bg-scene bg-rooftop" viewBox="0 0 960 720" preserveAspectRatio="xMidYMid slice" fill="none" stroke="currentColor">
-    <circle cx="640" cy="150" r="96" fill="rgba(255,255,255,.13)" stroke="rgba(255,255,255,.45)"/>
-    <circle cx="518" cy="82" r="2.6" fill="currentColor"/>
-    <circle cx="742" cy="62" r="2" fill="currentColor"/>
-    <circle cx="862" cy="205" r="3" fill="currentColor"/>
-    <circle cx="468" cy="242" r="2" fill="currentColor"/>
-    <circle cx="824" cy="330" r="2.2" fill="currentColor"/>
-    <circle cx="880" cy="120" r="1.6" fill="currentColor"/>
-    <path d="M380 520 H 960" stroke-width="3"/>
-    <path d="M380 520 V 700" stroke-width="1.4" opacity=".45"/>
-    <path d="M420 700 H 960" stroke-width="1.4" opacity=".45"/>
-    <path d="M428 700 V 596 H 478 V 700 M498 700 V 648 H 548 V 700 M568 700 V 606 H 628 V 700 M658 700 V 578 H 708 V 700 M748 700 V 636 H 788 V 700 M818 700 V 616 H 888 V 700 M908 700 V 652 H 960 V 700" stroke-width="2" opacity=".55"/>
-    <g fill="currentColor" opacity=".32">
-      <rect x="506" y="662" width="6" height="8"/><rect x="521" y="662" width="6" height="8"/>
-      <rect x="678" y="626" width="7" height="9"/><rect x="695" y="626" width="7" height="9"/>
-      <rect x="842" y="664" width="6" height="8"/>
-    </g>
-    <path d="M612 392 Q 590 472 608 524" stroke-width="3" stroke-linecap="round"/>
-    <path d="M676 392 Q 700 472 686 526" stroke-width="3" stroke-linecap="round"/>
-    <path d="M638 408 C 619 470 611 502 611 520 M646 408 C 665 470 673 502 673 520" stroke-width="3" stroke-linecap="round"/>
-    <circle cx="643" cy="376" r="30" fill="currentColor"/>
-    <path d="M620 398 H 666" stroke="#000" stroke-width="3"/>
-    <circle cx="643" cy="404" r="2.4" fill="#000"/>
-    <path d="M624 442 C 603 472 606 502 619 518" stroke-width="3" stroke-linecap="round"/>
-    <path d="M661 436 C 692 448 702 420 708 396" stroke-width="3" stroke-linecap="round"/>
-    <path d="M708 396 q 27 10 18 35 t -7 40" stroke-dasharray="2.4 6.4" stroke-width="3" stroke-linecap="round"/>
-    <circle cx="708" cy="396" r="4" fill="currentColor"/>
-    <path d="M615 520 V 642 M637 520 V 654" stroke-width="4" stroke-linecap="round"/>
-    <path d="M611 638 H 629 M633 650 H 649" stroke-width="4" stroke-linecap="round"/>
-    <path d="M608 520 H 676" stroke-width="3"/>
-    <g>
-      <circle cx="472" cy="494" r="16" fill="currentColor"/>
-      <path d="M458 482 L 449 466 M486 482 L 495 466" stroke-width="3"/>
-      <path d="M449 466 L 445 456 M495 466 L 499 456" stroke-width="2"/>
-      <path d="M454 508 C 470 532 504 532 520 510" stroke-width="3" stroke-linecap="round"/>
-      <path d="M516 510 C 526 524 542 522 546 512" stroke-width="3" stroke-linecap="round"/>
-    </g>
-  </svg>
-
-  <svg class="bg-scene bg-arch" viewBox="0 0 640 840" preserveAspectRatio="xMidYMax slice" fill="none" stroke="currentColor">
-    <path d="M150 820 V 420 C 150 300 240 178 320 178 C 400 178 490 300 490 420 V 820" stroke-width="4"/>
-    <path d="M185 820 V 442 C 185 335 252 236 320 236 C 388 236 455 335 455 442 V 820" stroke-width="2" opacity=".55"/>
-    <path d="M128 820 H 172 M468 820 H 512" stroke-width="3"/>
-    <circle cx="320" cy="520" r="47" stroke-width="2.5"/>
-    <circle cx="320" cy="520" r="31" stroke-width="2"/>
-    <path d="M320 473 A 23.5 23.5 0 0 1 343.5 520 M320 567 A 23.5 23.5 0 0 1 296.5 520 M296.5 520 A 16 16 0 0 1 320 504 M343.5 520 A 16 16 0 0 1 320 536" stroke-width="1.8"/>
-    <circle cx="320" cy="520" r="4" fill="currentColor"/>
-    <path d="M320 567 C 298 622 338 662 320 762" stroke-width="3" stroke-linecap="round"/>
-    <path d="M312 612 L 299 618 M330 640 L 343 646 M313 690 L 299 696" stroke-width="2" stroke-linecap="round"/>
-    <path d="M315 612 L 322 620 M326 640 L 322 648" stroke-width="2" stroke-linecap="round"/>
-    <path d="M331 632 C 352 619 358 638 339 648 Z" stroke-width="1.5"/>
-    <path d="M307 700 C 286 690 282 708 301 717 Z" stroke-width="1.5"/>
-    <path d="M250 248 q 12 18 24 0 q -12 -6 -24 0" stroke-width="2"/>
-    <path d="M362 208 q 10 15 20 0 q -10 -5 -20 0" stroke-width="2"/>
-    <path d="M148 604 q 6 -9 12 0 q -6 9 -12 0" stroke-width="1.5"/>
-    <path d="M522 700 q 6 -9 12 0 q -6 9 -12 0" stroke-width="1.5"/>
-    <path d="M176 744 q 5 -7 10 0 q -5 7 -10 0" stroke-width="1.5"/>
-  </svg>
-
-  <svg class="bg-scene bg-street" viewBox="0 0 1200 380" preserveAspectRatio="xMidYMax slice" fill="none" stroke="currentColor">
-    <path d="M0 320 H 1200" stroke-width="2"/>
-    <path d="M0 40 Q 300 130 620 62" stroke-width="1.5" opacity=".45"/>
-    <path d="M620 62 Q 900 140 1200 50" stroke-width="1.5" opacity=".45"/>
-    <g>
-      <rect x="80" y="120" width="120" height="200" rx="6"/>
-      <path d="M80 200 H 200" opacity=".45"/>
-      <rect x="230" y="80" width="150" height="240" rx="6"/>
-      <path d="M230 150 H 380 M230 210 H 330 M280 262 H 360" opacity=".45"/>
-      <rect x="420" y="150" width="90" height="170" rx="6"/>
-      <path d="M420 220 H 510 M440 272 H 490" opacity=".45"/>
-      <path d="M252 100 H 358 M252 168 H 358" stroke="#FF7ACD" opacity=".55" stroke-width="3"/>
-    </g>
-    <g>
-      <path d="M898 120 A 71 71 0 0 1 1040 120" stroke-width="3"/>
-      <path d="M969 120 V 190" stroke-width="2"/>
-      <path d="M977 186 L 1006 196" stroke-width="2"/>
-      <circle cx="969" cy="226" r="14" fill="currentColor"/>
-      <path d="M957 234 Q 947 272 957 298" stroke-width="3"/>
-      <path d="M981 234 Q 991 270 983 294" stroke-width="3"/>
-      <path d="M957 240 C 939 272 939 298 951 316 M981 240 C 999 272 999 298 987 316" stroke-width="3"/>
-      <path d="M951 316 H 987" stroke-width="3"/>
-      <path d="M959 316 V 346 M979 316 V 346" stroke-width="3"/>
-      <path d="M990 290 q 15 6 9 23" stroke-dasharray="2 5" stroke-width="2" stroke-linecap="round"/>
-    </g>
-    <g opacity=".55">
-      <path d="M700 340 H 860" stroke-width="2"/>
-      <path d="M730 352 H 830" stroke-width="2"/>
-      <path d="M750 364 H 810" stroke-width="2"/>
-      <path d="M1042 336 H 1162" stroke-width="2"/>
-      <path d="M1062 350 H 1142" stroke-width="2"/>
-    </g>
-    <circle cx="120" cy="40" r="2" fill="currentColor"/>
-    <circle cx="540" cy="30" r="2.5" fill="currentColor"/>
-    <circle cx="1122" cy="92" r="2" fill="currentColor"/>
-  </svg>
-
-  <svg class="bg-scene bg-sakura" viewBox="0 0 640 700" preserveAspectRatio="xMidYMax slice" fill="none" stroke="currentColor">
-    <g stroke-width="3" stroke-linecap="round">
-      <path d="M60 700 C 90 560 170 470 300 430"/>
-      <path d="M160 560 C 200 520 260 490 340 480"/>
-      <path d="M260 640 C 300 600 350 570 420 560"/>
-      <path d="M300 430 C 330 380 300 330 260 300"/>
-      <path d="M300 430 C 360 420 400 380 420 330"/>
-      <path d="M330 400 C 350 370 340 340 315 318"/>
-    </g>
-    <g fill="currentColor">
-      <ellipse cx="260" cy="296" rx="10" ry="15" transform="rotate(-30 260 296)"/>
-      <ellipse cx="425" cy="324" rx="10" ry="15" transform="rotate(20 425 324)"/>
-      <ellipse cx="340" cy="476" rx="9" ry="13" transform="rotate(10 340 476)"/>
-      <ellipse cx="424" cy="556" rx="9" ry="13" transform="rotate(-15 424 556)"/>
-      <ellipse cx="320" cy="592" rx="8" ry="12" transform="rotate(25 320 592)"/>
-      <ellipse cx="196" cy="560" rx="8" ry="12" transform="rotate(40 196 560)"/>
-      <ellipse cx="318" cy="314" rx="8" ry="12" transform="rotate(-10 318 314)"/>
-    </g>
-    <g opacity=".5">
-      <ellipse cx="120" cy="200" rx="6" ry="9" transform="rotate(10 120 200)"/>
-      <ellipse cx="470" cy="430" rx="6" ry="9" transform="rotate(-20 470 430)"/>
-      <ellipse cx="90" cy="420" rx="5" ry="8" transform="rotate(30 90 420)"/>
-      <ellipse cx="560" cy="250" rx="5" ry="8" transform="rotate(15 560 250)"/>
-    </g>
-  </svg>
-
-  <svg class="bg-scene bg-stars" viewBox="0 0 1200 420" preserveAspectRatio="xMidYMin slice" fill="none" stroke="currentColor">
-    <circle cx="1050" cy="90" r="54" fill="rgba(255,255,255,.12)" stroke="rgba(255,255,255,.5)"/>
-    <circle cx="1050" cy="90" r="8" fill="currentColor"/>
-    <path d="M1038 82 q 12 8 0 16 q -12 -8 0 -16" stroke-width="1.6" opacity=".6"/>
-    <g fill="currentColor" opacity=".85">
-      <circle cx="120" cy="60" r="2.4"/><circle cx="260" cy="140" r="1.8"/><circle cx="400" cy="50" r="2.8"/>
-      <circle cx="540" cy="120" r="2"/><circle cx="680" cy="40" r="2.4"/><circle cx="820" cy="160" r="1.8"/>
-      <circle cx="180" cy="260" r="1.6"/><circle cx="330" cy="300" r="2"/><circle cx="470" cy="240" r="1.8"/>
-      <circle cx="620" cy="290" r="2.4"/><circle cx="760" cy="320" r="1.6"/><circle cx="900" cy="250" r="2"/>
-      <circle cx="980" cy="180" r="1.8"/><circle cx="1130" cy="220" r="2.2"/><circle cx="60" cy="180" r="1.6"/>
-      <circle cx="1140" cy="40" r="1.8"/><circle cx="880" cy="40" r="2"/>
-    </g>
-    <path d="M240 60l6 14 15 2-11 10 3 15-13-8-13 8 3-15-11-10 15-2z" fill="currentColor" opacity=".5"/>
-    <path d="M700 90l5 12 13 2-9 9 2 13-11-7-11 7 2-13-9-9 13-2z" fill="currentColor" opacity=".4"/>
-    <path d="M980 300l4 9 10 1.5-7 6 2 9-9-5-9 5 2-9-7-6 10-1.5z" fill="currentColor" opacity=".35"/>
-  </svg>
 
   <div id="wallpaper"></div>
   <canvas id="particles"></canvas>
@@ -957,12 +816,12 @@ audio.msg-voice{max-width:260px;height:40px;margin-top:4px;border-radius:14px;ba
           <div class="glass stat-card hover">
             <div class="mc-label" data-i18n="totalDown">Загружено всего</div>
             <div class="mc-value accent" id="statDown">0</div>
-            <div class="mc-sub" data-i18n="sessionDown">Сессия</div>
+            <div class="mc-sub" data-i18n="sessionDown">Всего за всё время</div>
           </div>
           <div class="glass stat-card hover">
             <div class="mc-label" data-i18n="totalUp">Отдано всего</div>
             <div class="mc-value accent" id="statUp">0</div>
-            <div class="mc-sub" data-i18n="sessionUp">Сессия</div>
+            <div class="mc-sub" data-i18n="sessionUp">Всего за всё время</div>
           </div>
         </div>
         <div class="glass sub-card">
@@ -1094,7 +953,7 @@ audio.msg-voice{max-width:260px;height:40px;margin-top:4px;border-radius:14px;ba
                 <div class="set-row">
                   <div>
                     <div class="set-label" data-i18n="gameMode">Игровой режим</div>
-                    <div class="set-hint" data-i18n="gameModeHint">Заморозка фоновых приложений ради FPS</div>
+                    <div class="set-hint" data-i18n="gameModeHint">Пауза мессенджера и фоновых задач ради FPS</div>
                   </div>
                   <label class="switch"><input type="checkbox" id="setGame"><span class="track"></span></label>
                 </div>
@@ -1340,7 +1199,7 @@ audio.msg-voice{max-width:260px;height:40px;margin-top:4px;border-radius:14px;ba
   <div class="glass game-card">
     <div class="game-icon">🎮</div>
     <h2 class="game-title" id="gameOverlayTitle" data-i18n="gameOverlayTitle">Игровой режим</h2>
-    <p class="game-desc" id="gameOverlayDesc" data-i18n="gameOverlayDesc">Фоновые приложения заморожены:</p>
+    <p class="game-desc" id="gameOverlayDesc" data-i18n="gameOverlayDesc">Мессенджер и фоновые задачи приостановлены:</p>
     <div class="game-list" id="gameOverlayList"></div>
     <div class="game-actions">
       <button class="btn ghost small" id="gameDismiss" data-i18n="gameOverlayOk">Понятно</button>
@@ -1397,7 +1256,7 @@ const I18N = {
     directSites:'В обход VPN', blockSites:'Заблокировать', routesHint:'По одной записи на строку',
     save:'Сохранить', savedToast:'Сохранено',
     statsDesc:'Трафик и лимиты подписки.',
-    totalDown:'Загружено всего', totalUp:'Отдано всего', sessionDown:'Сессия ↓', sessionUp:'Сессия ↑',
+    totalDown:'Загружено всего', totalUp:'Отдано всего', sessionDown:'Всего за всё время ↓', sessionUp:'Всего за всё время ↑',
     subCard:'Подписка', subUsed:'Израсходовано', subLeft:'Осталось', subTotal:'Лимит',
     subExpire:'Действует до', subUnlimited:'Безлимит', subForever:'Бессрочно', subExpired:'Истекла',
     subNoInfo:'Нет данных о подписке',
@@ -1416,8 +1275,8 @@ const I18N = {
     highPriority:'Высокий приоритет', minimizeToTray:'Сворачивать в трей', startMinimized:'Запуск свёрнутым',
     newsOff:'Уведомления о новостях', resetTutorial:'Обучение', showAgain:'Показать заново',
     autostart:'Автозапуск при входе в Windows',
-    gameMode:'Игровой режим', gameModeHint:'Заморозка фоновых приложений ради FPS',
-    gameOverlayTitle:'Игровой режим', gameOverlayDesc:'Фоновые приложения заморожены:', gameOverlayOk:'Понятно', gameOverlayOff:'Выключить игровой режим',
+    gameMode:'Игровой режим', gameModeHint:'Пауза мессенджера и фоновых задач ради FPS',
+    gameOverlayTitle:'Игровой режим', gameOverlayDesc:'Мессенджер и фоновые задачи приостановлены:', gameOverlayOk:'Понятно', gameOverlayOff:'Выключить игровой режим', gameFreezeMessenger:'Мессенджер',
     dataFolder:'Папка с данными', openFolder:'Открыть', buildInfo:'Сборка',
     saveBtn:'Сохранить настройки',
     profileDesc:'Подписка, Telegram, детали.',
@@ -1427,6 +1286,7 @@ const I18N = {
     errEmpty:'Вставь ссылку или URL', errNoServer:'Сначала добавь и выбери сервер',
     errNeedAdmin:'Нужны права администратора. Перезапустить с ними?',
     errNoTun:'tun2socks.exe не найден рядом с приложением',
+    err_no_live_server:'Все серверы недоступны. Обнови подписку или попробуй позже',
     errConflict:'Сторонний VPN уже запущен:', errConflictHint:'Отключи его, иначе возможны конфликты',
     connectedOk:'Подключено', disconnectedOk:'Отключено',
     connTimeout:'Тайм-аут запуска. Ядро не поднялось — смотри лог в Настройках.',
@@ -1496,7 +1356,7 @@ const I18N = {
     directSites:'Bypass VPN', blockSites:'Block', routesHint:'One entry per line',
     save:'Save', savedToast:'Saved',
     statsDesc:'Traffic and subscription limits.',
-    totalDown:'Total download', totalUp:'Total upload', sessionDown:'Session ↓', sessionUp:'Session ↑',
+    totalDown:'Total download', totalUp:'Total upload', sessionDown:'Lifetime ↓', sessionUp:'Lifetime ↑',
     subCard:'Subscription', subUsed:'Used', subLeft:'Left', subTotal:'Limit',
     subExpire:'Expires', subUnlimited:'Unlimited', subForever:'Forever', subExpired:'Expired',
     subNoInfo:'No subscription data',
@@ -1515,8 +1375,8 @@ const I18N = {
     highPriority:'High priority', minimizeToTray:'Minimize to tray', startMinimized:'Start minimized',
     newsOff:'News notifications', resetTutorial:'Tutorial', showAgain:'Show again',
     autostart:'Launch on Windows startup',
-    gameMode:'Game mode', gameModeHint:'Freeze background apps for better FPS',
-    gameOverlayTitle:'Game mode', gameOverlayDesc:'Background apps are frozen:', gameOverlayOk:'Got it', gameOverlayOff:'Turn off game mode',
+    gameMode:'Game mode', gameModeHint:'Pause messenger and background tasks for better FPS',
+    gameOverlayTitle:'Game mode', gameOverlayDesc:'Messenger and background tasks are paused:', gameOverlayOk:'Got it', gameOverlayOff:'Turn off game mode', gameFreezeMessenger:'Messenger',
     dataFolder:'Data folder', openFolder:'Open', buildInfo:'Build',
     saveBtn:'Save settings',
     profileDesc:'Subscription, Telegram, details.',
@@ -1526,6 +1386,7 @@ const I18N = {
     errEmpty:'Paste a link or URL', errNoServer:'Add and select a server first',
     errNeedAdmin:'Administrator rights required. Restart with them?',
     errNoTun:'tun2socks.exe not found next to the app',
+    err_no_live_server:'All servers are unreachable. Update the subscription or try again later',
     errConflict:'Third-party VPN already running:', errConflictHint:'Turn it off to avoid conflicts',
     connectedOk:'Connected', disconnectedOk:'Disconnected',
     connTimeout:'Connection start timed out. The core did not come up — check the log in Settings.',
@@ -1725,6 +1586,11 @@ function renderStats(){
   bar.classList.toggle('over', !!sub.expired);
   $('#subUsed').textContent = sub.known ? fmtBytes(sub.used) : '—';
   const unlimited = sub.known && sub.total == null;
+  if (sub.known && !sub.used && unlimited) {
+    // панель не считает трафик (0/0/0) — показываем локальный кумулятивный
+    const loc = (sp.total_down || 0) + (sp.total_up || 0);
+    if (loc > 0) $('#subUsed').textContent = fmtBytes(loc);
+  }
   $('#subLeft').textContent = unlimited ? '—' : (sub.known ? (sub.left == null ? t('subUnlimited') : fmtBytes(sub.left)) : '—');
   $('#subTotal').textContent = unlimited ? t('subUnlimited') : (sub.known ? (sub.total == null ? t('subUnlimited') : fmtBytes(sub.total)) : '—');
   const ex = $('#subExpire');
@@ -2026,12 +1892,11 @@ function applyBg(dataUrl, isScene){
   if (dataUrl) {
     w.style.backgroundImage = 'url(' + dataUrl + ')';
     w.classList.add('on');
-    document.body.classList.toggle('bg-scene', !!isScene);
-    document.body.classList.add('has-bg');
+    document.body.dataset.bg = isScene ? 'scene' : 'photo';
   } else {
     w.style.backgroundImage = '';
     w.classList.remove('on');
-    document.body.classList.remove('has-bg', 'bg-scene');
+    delete document.body.dataset.bg;
   }
 }
 
@@ -2515,6 +2380,8 @@ function tgAddMessage(ev){
   if (!TG.messages[peer]) TG.messages[peer] = [];
   if (TG.messages[peer].some(m => m.id === ev.id)) return;
   TG.messages[peer].push(ev);
+  if (TG.messages[peer].length > TG_CAP.perPeer) TG.messages[peer] = TG.messages[peer].slice(-TG_CAP.perPeer);
+  capObj(TG.messages, TG_CAP.messages);
   const d = TG.dialogMap[peer];
   d.last = ev.text || tgMediaLabel(ev.media) || '…';
   d.date = ev.date || d.date;
@@ -2556,6 +2423,22 @@ function renderAvatars(){
   TG.dialogs.forEach(d => { const el = $('#ava_' + d.id); if (el && TG.avatars[d.id]) setAva(el, TG.avatars[d.id], d.title); });
   if (TG.active && TG.avatars[TG.active] && $('#chatAva')) setAva($('#chatAva'), TG.avatars[TG.active], $('#chatTitle').textContent);
 }
+// лимиты кэшей мессенджера в JS — не даём base64-кэшам расти безразмерно
+const TG_CAP = { messages: 8, perPeer: 220, thumbs: 300, avatars: 400, senders: 2500, emoji: 220, picker: 400 };
+function capObj(obj, n, perKey){
+  if (!obj) return;
+  if (perKey) for (const k in obj) {
+    const v = obj[k];
+    if (!v) continue;
+    const sz = (v.length !== undefined) ? v.length : (v instanceof Object ? Object.keys(v).length : 0);
+    if (sz > perKey) {
+      if (v.length !== undefined) obj[k] = v.slice(v.length - perKey);
+      else { const ks = Object.keys(v); while (ks.length > perKey) { delete v[ks.shift()]; } }
+    }
+  }
+  const keys = Object.keys(obj);
+  while (keys.length > n) { delete obj[keys.shift()]; }
+}
 function tgPush(ev){
   if (!ev || !ev.type) return;
   switch (ev.type) {
@@ -2574,10 +2457,14 @@ function tgPush(ev){
       renderDialogList(); renderAvatars(); break;
     case 'messages':
       TG.messages[ev.peer_id] = ev.messages || []; TG.senders[ev.peer_id] = TG.senders[ev.peer_id] || {};
+      if (TG.messages[ev.peer_id].length > TG_CAP.perPeer) TG.messages[ev.peer_id] = TG.messages[ev.peer_id].slice(-TG_CAP.perPeer);
+      capObj(TG.messages, TG_CAP.messages);
+      capObj(TG.senders, TG_CAP.senders, TG_CAP.perPeer);
       if (screen === 'messenger' && TG.active === ev.peer_id) renderChat(); break;
     case 'senders':
       TG.senders[ev.peer_id] = TG.senders[ev.peer_id] || {};
       (ev.senders || []).forEach(s => { TG.senders[ev.peer_id][s.id] = s.name; });
+      capObj(TG.senders, TG_CAP.senders, TG_CAP.perPeer);
       if (screen === 'messenger' && TG.active === ev.peer_id) {
         const m = TG.messages[ev.peer_id];
         if (m) m.forEach(x => { if (!x.sender && x.sender_id != null) x.sender = TG.senders[ev.peer_id][x.sender_id]; });
@@ -2592,11 +2479,13 @@ function tgPush(ev){
     case 'thumb':
       TG.thumbs[ev.peer_id] = TG.thumbs[ev.peer_id] || {};
       TG.thumbs[ev.peer_id][ev.msg_id] = ev.data;
+      capObj(TG.thumbs, TG_CAP.thumbs, TG_CAP.perPeer);
       if (screen === 'messenger' && TG.active === ev.peer_id) tgSetThumb(ev.peer_id, ev.msg_id);
       break;
     case 'emoji':
       TG.emoji = TG.emoji || {};
       if (ev.data) Object.keys(ev.data).forEach(k => { TG.emoji[k] = ev.data[k]; });
+      capObj(TG.emoji, TG_CAP.emoji);
       $$('.msg-emoji.pending[data-emoji]').forEach(img => {
         const d = TG.emoji[img.dataset.emoji];
         if (d) { img.src = d; img.classList.remove('pending'); }
@@ -2609,11 +2498,13 @@ function tgPush(ev){
       break;
     case 'sticker_items':
       if (ev.set_id !== undefined) TG.stickerItems[ev.set_id] = ev.items || [];
+      capObj(TG.stickerItems, 40, 120);
       if (pickerTab === 'sticker' && ev.set_id === TG.stickerCurrentSet) showPickerTab('sticker');
       if (pickerTab === 'emoji' && ev.set_id === TG.emojiCurrentSet) showPickerTab('emoji');
       break;
     case 'sticker_preview':
       TG.pickerPreviews[ev.doc_id] = ev.data;
+      capObj(TG.pickerPreviews, TG_CAP.picker);
       if (pickerTab === 'sticker' || pickerTab === 'emoji') {
         $$('.picker-cell img[data-doc="' + ev.doc_id + '"]').forEach(img => {
           img.src = ev.data;
@@ -2645,7 +2536,7 @@ function tgPush(ev){
       }
       break;
     case 'avatar':
-      TG.avatars[ev.peer_id] = ev.data; renderAvatars(); break;
+      TG.avatars[ev.peer_id] = ev.data; capObj(TG.avatars, TG_CAP.avatars); renderAvatars(); break;
     case 'media': tgGotMedia(ev); break;
     case 'news': applyNewsData(ev); break;
     case 'news_error':
@@ -3232,7 +3123,7 @@ function applyNewsData(r){
   $('#nbTitle').textContent = (S && S.sub && S.sub.title) || 'MimiBox';
   $('#nbDate').textContent = r.date || '';
   $('#nbBody').textContent = (holder.textContent || '').replace(/\s+/g, ' ').trim();
-  $('#newsBanner').classList.add('show');
+  if (!(S && S.settings && S.settings.news_off)) $('#newsBanner').classList.add('show');
   if (screen === 'news') renderNewsFromData();
 }
 function newsFallback(){
@@ -3514,9 +3405,21 @@ window.__pushGame = (list) => {
   const ov = $('#gameOverlay');
   if (!ov) return;
   list = Array.isArray(list) ? list : [];
-  if (!list.length) { ov.hidden = true; return; }
+  if (!list.length) {
+    ov.hidden = true;
+    if (window.__gameWasFrozen) {
+      window.__gameWasFrozen = false;
+      if (api()) { try { api().tg_refresh(); } catch(e){} }
+    }
+    return;
+  }
+  window.__gameWasFrozen = true;
+  // игровой режим теперь замораживает внутренние подсистемы приложения:
+  // отпускаем тяжёлые кэши мессенджера, чтобы рендерер не держал base64
+  try { TG.messages = {}; TG.thumbs = {}; TG.emoji = {}; TG.avatars = {}; TG.senders = {}; } catch(e){}
+  const chipMap = {messenger: (t('gameFreezeMessenger') || 'Messenger')};
   const chips = $('#gameOverlayList');
-  if (chips) chips.innerHTML = list.map(l => '<span class="game-chip">' + esc(l) + '</span>').join('');
+  if (chips) chips.innerHTML = list.map(l => '<span class="game-chip">' + esc(chipMap[l] || l) + '</span>').join('');
   ov.hidden = false;
 };
 window.__tgPush = (ev) => tgPush(ev);

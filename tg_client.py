@@ -103,6 +103,16 @@ class TgMessenger:
         self._logging_in = False       # идёт ручной вход — сторож не мешает
         self._auth_emitted = False     # not_authorized уже показан один раз
         self._keepalive_task = None
+        self._paused = False           # игровой режим: клиент на паузе
+
+        # лимиты кэшей — мессенджер не должен держать сотни мегабайт base64
+        self._MAX_PREVIEW = 300        # data:URI превью медиа
+        self._MAX_EMOJI = 200          # премиум-эмодзи
+        self._MAX_DOCS = 1500          # документы для пересылки
+        self._MAX_SENDERS = 3000       # имена отправителей
+        self._MAX_ENTITIES = 2000      # сущности чатов/пользователей
+        self._MAX_MSGS = 200           # сообщений на один чат
+        self._MAX_DIALOGS = 200        # диалогов в списке
 
         # хуки, которые вешает api.py: плагины и рассылка в UI
         self._on_before_send = None   # fn(ev) -> {"handled": bool, "reply": str}
@@ -162,6 +172,20 @@ class TgMessenger:
         try:
             self._client = self._new_client(api_id, api_hash)
             await self._client.connect()
+            if self._paused:
+                # игровой режим был включён до старта: подписки не поднимаем,
+                # но запоминаем авторизацию, чтобы при разморозке сразу
+                # восстановить список диалогов
+                try:
+                    self._authorized = await self._client.is_user_authorized()
+                except Exception:
+                    pass
+                try:
+                    await self._client.disconnect()
+                except Exception:
+                    pass
+                self._schedule_keepalive()
+                return
         except Exception as e:
             self._log("[tg] подключение не удалось: %s" % e)
             self._offline = True
@@ -197,6 +221,8 @@ class TgMessenger:
         while True:
             try:
                 await asyncio.sleep(12)
+                if self._paused:
+                    continue
                 c = self._client
                 if c is None:
                     continue
@@ -225,6 +251,82 @@ class TgMessenger:
                 self._log("[tg] keepalive: %s" % e)
 
     # ------------------------------------------------------------- helpers
+    @staticmethod
+    def _cap_dict(d, n):
+        """Выкидывает из dict самые старые ключи, пока размер не станет <= n."""
+        while len(d) > n:
+            try:
+                d.pop(next(iter(d)))
+            except (KeyError, StopIteration):
+                break
+
+    def _drop_caches(self):
+        """Полностью сбрасывает in-memory кэши — при паузе в игровом режиме.
+
+        Это самый большой кусок RAM мессенджера: data:URI превью, эмодзи,
+        списки сообщений и сущности. На паузе они не нужны — отпускаем, а при
+        возобновлении клиент подтянет их заново (диалоги — сразу).
+        """
+        self._messages.clear()
+        self._dialogs_cache.clear()
+        self._sender_cache.clear()
+        self._entities.clear()
+        self._docs.clear()
+        self._preview_cache.clear()
+        self._emoji_cache.clear()
+        self._sticker_sets_cache.clear()
+        self._gif_search_cache.clear()
+        self._pushed.clear()
+        self._sticker_sets = []
+        self._sets_loaded = False
+
+    def set_paused(self, paused):
+        """Ставит/снимает мессенджер с паузы (игровой режим).
+
+        Пауза: сбрасываем кэши и отключаемся от Telegram — соединение и буферы
+        освобождаются для игры. Возобновление: переподключаемся и (если были
+        авторизованы) сразу обновляем список диалогов.
+        Возвращает True, если пауза реально применена.
+        """
+        paused = bool(paused)
+        if paused == self._paused:
+            return False
+        self._paused = paused
+        if self._loop is None:
+            return True
+        try:
+            if paused:
+                asyncio.run_coroutine_threadsafe(self._pause_now(), self._loop)
+            else:
+                asyncio.run_coroutine_threadsafe(self._resume_now(), self._loop)
+        except Exception:
+            pass
+        return True
+
+    async def _pause_now(self):
+        self._drop_caches()
+        c = self._client
+        if c is not None and c.is_connected():
+            try:
+                await c.disconnect()
+            except Exception:
+                pass
+
+    async def _resume_now(self):
+        c = self._client
+        if c is None:
+            return
+        if not c.is_connected() and not self._logging_in:
+            try:
+                await c.connect()
+            except Exception:
+                pass
+        if self._authorized:
+            try:
+                await self._refresh_dialogs()
+            except Exception:
+                pass
+
     def _session_path(self):
         return os.path.join(self._dir, _SESSION_FILE)
 
@@ -487,7 +589,7 @@ class TgMessenger:
 
     # ------------------------------------------------------------- dialogs
     async def _refresh_dialogs(self):
-        if not self._client:
+        if not self._client or not self._client.is_connected():
             return
         try:
             async for d in self._client.iter_dialogs(limit=200):
@@ -497,6 +599,9 @@ class TgMessenger:
                 if isinstance(ent, User):
                     self._sender_cache[ent.id] = self._entity_title(ent)
                 self._dialogs_cache[key] = self._dialog_json(d, ent)
+            self._cap_dict(self._entities, self._MAX_ENTITIES)
+            self._cap_dict(self._sender_cache, self._MAX_SENDERS)
+            self._cap_dict(self._dialogs_cache, self._MAX_DIALOGS)
         except Exception as e:
             self._emit_error("dialogs", str(e))
             return
@@ -579,6 +684,10 @@ class TgMessenger:
         unknown = [m["sender_id"] for m in msgs
                    if not m["out"] and m["sender_id"] and not self._sender_cache.get(m["sender_id"])]
         self._messages[peer_key] = msgs
+        self._cap_dict(self._messages, 8)
+        lst = self._messages[peer_key]
+        if len(lst) > self._MAX_MSGS:
+            del lst[:len(lst) - self._MAX_MSGS]
         d = self._dialogs_cache.get(peer_key)
         if d is not None and d.get("unread"):
             d["unread"] = 0
@@ -619,6 +728,8 @@ class TgMessenger:
                 out[str(sid)] = name
             except Exception:
                 continue
+        self._cap_dict(self._sender_cache, self._MAX_SENDERS)
+        self._cap_dict(self._entities, self._MAX_ENTITIES)
         if out:
             self._emit({"type": "senders", "peer_id": peer_key, "senders": out})
 
@@ -680,6 +791,9 @@ class TgMessenger:
         lst = self._messages.get(peer_key)
         if lst is not None:
             lst.append(ev)
+            if len(lst) > self._MAX_MSGS:
+                del lst[:len(lst) - self._MAX_MSGS]
+        self._cap_dict(self._messages, 8)
         # флаг «уведомления выключены» едет вместе с сообщением, чтобы JS
         # не показывал тост для замьюченных чатов (в т.ч. если чата ещё нет в списке)
         dlg = self._dialogs_cache.get(peer_key)
@@ -701,6 +815,8 @@ class TgMessenger:
             self._log("[tg] не удалось повесить приём: %s" % e)
 
     async def _on_new_message(self, event):
+        if self._paused:
+            return
         try:
             chat = await event.get_chat()
         except Exception:
@@ -714,6 +830,8 @@ class TgMessenger:
         self._entities[peer_key] = chat
         if isinstance(chat, User):
             self._sender_cache[chat.id] = self._entity_title(chat)
+        self._cap_dict(self._entities, self._MAX_ENTITIES)
+        self._cap_dict(self._sender_cache, self._MAX_SENDERS)
         ev = self._msg_json(msg, chat)
         ev["peer_title"] = self._entity_title(chat)
 
@@ -829,6 +947,7 @@ class TgMessenger:
             self._log("[tg] emoji flow: %s" % e)
             return
         if self._emoji_cache:
+            self._cap_dict(self._emoji_cache, self._MAX_EMOJI)
             self._emit({"type": "emoji", "data": dict(self._emoji_cache)})
 
     async def _media_flow(self, peer_key, msg_id):
@@ -984,6 +1103,7 @@ class TgMessenger:
                 if isinstance(a, DocumentAttributeCustomEmoji):
                     is_emoji = True
             items.append({"doc_id": did, "emoji": e})
+        self._cap_dict(self._docs, self._MAX_DOCS)
         return {
             "id": sid, "access_hash": a_hash,
             "title": getattr(detail, "set", None) and getattr(detail.set, "title", "") or "",
@@ -1047,6 +1167,7 @@ class TgMessenger:
         except Exception:
             return
         self._preview_cache[doc_id] = data_uri
+        self._cap_dict(self._preview_cache, self._MAX_PREVIEW)
         self._emit({"type": "sticker_preview", "doc_id": doc_id, "data": data_uri})
 
     async def _send_doc_flow(self, peer_key, doc_id):
@@ -1082,6 +1203,7 @@ class TgMessenger:
             did = getattr(d, "id", 0)
             self._docs[did] = d
             out.append({"doc_id": did})
+        self._cap_dict(self._docs, self._MAX_DOCS)
         self._emit({"type": "saved_gifs", "gifs": out})
 
     async def _gif_search_flow(self, query):
@@ -1112,6 +1234,7 @@ class TgMessenger:
             out.append({"doc_id": did})
             if len(out) >= 20:
                 break
+        self._cap_dict(self._docs, self._MAX_DOCS)
         self._gif_search_cache[query] = [g["doc_id"] for g in out]
         self._emit({"type": "gif_search", "q": query, "gifs": out})
 

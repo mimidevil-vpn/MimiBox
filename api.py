@@ -48,13 +48,19 @@ class Api:
         self._conflicts_lock = threading.Lock()
         self._save_error = ""
         self._speed = (0, 0)
-        self._total = [0, 0]
+        # Кумулятивный трафик (байты): продолжаем с прошлых запусков
+        self._total = [int(self.settings.get("traffic_up") or 0),
+                       int(self.settings.get("traffic_down") or 0)]
         self._last_hint = ""
         self._stats_thread = None
         self._stop_stats = threading.Event()
+        # ---- новости ----
+        self._news_result = None    # последний успешный результат get_news
+        self._news_ts = 0.0         # время последнего успешного получения
+        self._news_fetching = False # идёт ли фоновый скан канала
+        self._news_suppressed = False  # игровой режим: новости не тянем
         # ---- игровой режим ----
-        self._game_suspended = {}
-        self._game_lock = threading.Lock()
+        self._game_frozen = False   # заморожены ли внутренние подсистемы
 
         # ---- мессенджер и плагины ----
         self._plugins = plugins_mod.PluginManager(
@@ -93,73 +99,145 @@ class Api:
         # поиск сторонних VPN не должен тормозить открытие окна
         threading.Thread(target=self._scan_conflicts, daemon=True).start()
         threading.Thread(target=self._cleanup_orphans, daemon=True).start()
-        # игровой режим: заморозка фоновых приложений и оверлей в UI
-        threading.Thread(target=self._game_loop, daemon=True).start()
+        # после жёсткой перезагрузки/выключения ПК с работающим VPN в реестре
+        # остаётся включённый системный прокси на наш inbound-порт, а Xray уже
+        # мёртв — сайты не открываются. Снимаем такой «зависший» прокси сразу.
+        self._cleanup_stale_proxy()
+        # фон: устаревшую подписку освежаем молча, не тормозя открытие окна
+        threading.Thread(target=self._auto_refresh_subscription, daemon=True).start()
+        # игровой режим: если остался включён с прошлого запуска — замораживаем
+        # свои фоновые подсистемы сразу, как раньше делал сторожевой цикл
+        self._apply_game_mode()
         # автозапуск: если включён в настройках — вернуть запись в реестр
         if self.settings.get("autostart"):
             apply_autostart(True)
 
-    def _game_loop(self):
-        """Следит за «тяжёлыми» фоновыми процессами, пока включён игровой режим.
+    def _apply_game_mode(self):
+        """Включает/выключает внутреннюю заморозку по текущей настройке.
 
-        Найденные процессы замораживаются (NtSuspendProcess), UI получает список
-        и показывает полноэкранное уведомление. При выключении режима или выходе
-        из приложения все замороженные процессы возобновляются.
+        Игровой режим больше не трогает чужие процессы системы (раньше — tasklist
+        + NtSuspendProcess по Chrome/Edge/Discord и т.п.). Вместо этого паузу
+        получают СВОИ фоновые подсистемы приложения: мессенджер Telethon
+        (отключается и сбрасывает кэши — это самый прожорливый по памяти кусок)
+        и фоновые сканы новостей. Так освобождаются и RAM, и CPU для игры, не
+        трогая остальную систему.
         """
-        last_labels = ()
-        while True:
-            time.sleep(5)
-            if not self.settings.get("game_mode"):
-                with self._game_lock:
-                    to_resume = list(self._game_suspended)
-                    self._game_suspended = {}
-                if to_resume:
-                    _suspend_pids(to_resume, resume=True)
-                if last_labels:
-                    last_labels = ()
-                    self._push("window.__pushGame([])")
-                continue
-            import subprocess
-            found = {}
-            try:
-                si = subprocess.STARTUPINFO()
-                si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-                out = subprocess.check_output(
-                    ["tasklist", "/fo", "csv", "/nh"],
-                    startupinfo=si, creationflags=0x08000000,
-                    text=True, errors="ignore", timeout=8,
-                )
-                for line in out.strip().splitlines():
-                    parts = line.split('","')
-                    if len(parts) < 2:
-                        continue
-                    name = (parts[0].strip('"') or "").lower()
-                    pid = parts[1].strip('"')
-                    label = GAME_PROCESSES.get(name)
-                    if label and pid.isdigit():
-                        found.setdefault(label, set()).add(int(pid))
-            except Exception:
-                pass
+        if self.settings.get("game_mode"):
+            self._game_freeze()
+        else:
+            self._game_thaw()
 
-            with self._game_lock:
-                alive = {pid for pids in found.values() for pid in pids}
-                new_pids = [pid for pids in found.values() for pid in pids
-                            if pid not in self._game_suspended]
-                if new_pids:
-                    _suspend_pids(new_pids)
-                for pid in new_pids:
-                    self._game_suspended[pid] = True
-                self._game_suspended = {
-                    pid: True for pid in self._game_suspended if pid in alive}
-            labels = tuple(sorted(found))
-            if labels != last_labels:
-                last_labels = labels
-                self._push("window.__pushGame(%s)" % json.dumps(list(labels)))
+    def _game_freeze(self):
+        if self._game_frozen:
+            return
+        self._game_frozen = True
+        self._news_suppressed = True
+        frozen = []
+        try:
+            if self._tg.set_paused(True):
+                frozen.append("messenger")
+        except Exception:
+            pass
+        self._push("window.__pushGame(%s)"
+                   % json.dumps(frozen, ensure_ascii=False))
+
+    def _game_thaw(self):
+        if not self._game_frozen:
+            return
+        self._game_frozen = False
+        self._news_suppressed = False
+        try:
+            self._tg.set_paused(False)
+        except Exception:
+            pass
+        self._push("window.__pushGame(%s)" % json.dumps([]))
 
     def _cleanup_orphans(self):
         killed = kill_orphans(find_xray(self.settings.get("xray_path", "")))
         if killed:
             storage.log("[env] снято зависших ядер от прошлого запуска: %d" % killed)
+
+    def _cleanup_stale_proxy(self):
+        """Снимает системный прокси, оставшийся от прошлого запуска.
+
+        Сценарий: VPN включён, ПК выключают/перезагружают без «Отключить».
+        shutdown() не выполняется, ProxyEnable=1 остаётся в реестре, Xray уже
+        не слушает порт — и после входа в систему сайты не открываются.
+        Если прокси включён именно на наш порт и порт никто не слушает —
+        снимаем (галочка убирается автоматически).
+        """
+        hp = int(self.settings.get("http_port", 10809))
+        sp = int(self.settings.get("socks_port", 10808))
+        try:
+            ok, err = win_proxy.cleanup_stale_proxy(own_ports=(hp, sp))
+        except Exception as e:
+            storage.log("[proxy] сбой очистки прокси: %s" % e)
+            return
+        if ok:
+            storage.log("[proxy] снят зависший системный прокси после перезагрузки")
+        elif err:
+            storage.log("[proxy] очистка прокси: %s" % err)
+
+    def _auto_refresh_subscription(self):
+        """При старте молча обновляем подписку, если серверов нет или данные
+        устарели (старше 12 часов). Свежие данные и живые серверы не трогаем —
+        чтобы не затирать вручную добавленные серверы. Ошибки не критичны."""
+        url = (self.settings.get("subscription_url") or "").strip()
+        if not url:
+            return
+        time.sleep(2.5 + random.random() * 2.0)   # даём окну открыться
+        if self.connected:
+            return
+        updated = int(self.settings.get("sub_updated") or 0)
+        stale = (time.time() - updated) > 12 * 3600
+        if self.servers and not stale:
+            return
+        storage.log("[sub] авто-обновление подписки (%s)"
+                    % ("нет серверов" if not self.servers else "данные устарели"))
+        try:
+            self.refresh_subscription()
+        except Exception as e:
+            storage.log("[sub] авто-обновление не удалось: %s" % e)
+
+    def _find_live_server(self, timeout=1.5, prefer=None):
+        """Индекс самого быстрого доступного сервера из текущего списка, либо None.
+
+        prefer — (protocol, network) транспорта, к которому нужно стремиться:
+        сначала ищем живой с таким же транспортом (для Reality-конфига это почти
+        наверняка рабочий), и только если таких нет — любой живой.
+        """
+        targets = [(i, s.address, s.port) for i, s in enumerate(self.servers)]
+        if not targets:
+            return None
+        if prefer is None and 0 <= self.selected < len(self.servers):
+            srv = self.servers[self.selected]
+            prefer = (srv.protocol, srv.network)
+        results = {}
+        lock = threading.Lock()
+        sem = threading.Semaphore(12)
+
+        def one(idx, host, port):
+            ms = tcp_ping(host, port, timeout=timeout)
+            with lock:
+                results[idx] = ms
+
+        threads = [threading.Thread(target=one, args=t, daemon=True)
+                   for t in targets]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+        live = [i for i, ms in results.items() if ms is not None and ms >= 0]
+        if not live:
+            return None
+        pool = live
+        if prefer:
+            same = [i for i in live
+                    if (self.servers[i].protocol, self.servers[i].network) == prefer]
+            if same:
+                pool = same
+        pool.sort(key=lambda i: results[i])
+        return pool[0]
 
     # ------------------------------------------------- окно и колбэки
     def _attach(self, window, on_quit=None, on_speed=None):
@@ -369,6 +447,19 @@ class Api:
 
         self.selected = index
         srv = self.servers[index]
+
+        # Авто-фейловер: выбранный сервер недоступен — ищем живой. Живой отвечает
+        # за миллисекунды, задержка появляется только на мёртвом (таймаут ping).
+        if tcp_ping(srv.address, srv.port) < 0:
+            self._log("[core] сервер %s:%s недоступен, ищу живой..."
+                      % (srv.address, srv.port))
+            live = self._find_live_server(prefer=(srv.protocol, srv.network))
+            if live is None:
+                self._log("[core] все серверы недоступны — обновите подписку")
+                return {"error": "no_live_server"}
+            self.selected = live
+            srv = self.servers[live]
+            self._log("[core] переключаюсь на %s:%s" % (srv.address, srv.port))
         sp = int(self.settings.get("socks_port", 10808))
         hp = int(self.settings.get("http_port", 10809))
         try:
@@ -409,6 +500,7 @@ class Api:
 
     def disconnect(self):
         self._stop_stats_loop()
+        self._persist_traffic()
         self._tun.stop()
         self._xray.stop()
         if self.settings.get("system_proxy", True):
@@ -802,11 +894,20 @@ class Api:
 
     def _stop_stats_loop(self):
         self._stop_stats.set()
-        self._total = [0, 0]
+
+    def _persist_traffic(self):
+        """Сохраняем кумулятивный трафик, чтобы он не терялся при перезапуске."""
+        try:
+            self.settings["traffic_up"] = int(self._total[0])
+            self.settings["traffic_down"] = int(self._total[1])
+            storage.save_settings(self.settings)
+        except Exception:
+            pass
 
     def _stats_loop(self):
         # первый опрос сбрасывает накопленное за время старта ядра
         self._xray.traffic()
+        tick = 0
         while not self._stop_stats.wait(1.0):
             if not self.connected:
                 break
@@ -815,7 +916,12 @@ class Api:
             self._total[1] += down
             self._speed = (up, down)
             self._push_speed(up, down)
+            tick += 1
+            if tick >= 15:      # раз в ~15 секунд — в файл
+                tick = 0
+                self._persist_traffic()
         self._speed = (0, 0)
+        self._persist_traffic()
 
     def _push_speed(self, up, down):
         self._push("window.__pushSpeed(%d,%d,%d,%d)"
@@ -863,7 +969,11 @@ class Api:
             cur["font_style"] = str(patch.get("font_style", "") or "")[:32]
         # ---- автозапуск и игровой режим ----
         cur["autostart"] = bool(patch.get("autostart", cur.get("autostart", False)))
-        cur["game_mode"] = bool(patch.get("game_mode", cur.get("game_mode", False)))
+        if "game_mode" in patch:
+            prev_game = bool(cur.get("game_mode", False))
+            cur["game_mode"] = bool(patch.get("game_mode", prev_game))
+            if bool(cur["game_mode"]) != prev_game:
+                self._apply_game_mode()
 
         ok = self._save()
         if ok and "high_priority" in patch:
@@ -1113,7 +1223,38 @@ class Api:
 
     # ------------------------------------------------------------ новости
     def get_news(self):
-        return self._fetch_channel_news("mackkill")
+        """Последний пост канала новостей.
+
+        Скан канала занимает секунды, поэтому делаем его в фоне: сюда приходят
+        сразу (кэш или признак загрузки), а результат приходит в JS пушем
+        (window.__tgPush {type:'news'}), который фронт уже умеет показывать.
+        """
+        if self._news_result and (time.time() - self._news_ts) < 1800:
+            return self._news_result
+        if not self._news_fetching and not self._news_suppressed:
+            self._news_fetching = True
+            threading.Thread(target=self._news_worker, args=("mackkill",),
+                             daemon=True).start()
+        return {"ok": False, "html": "", "post_id": "", "date": "",
+                "disabled": self.settings.get("news_off", False)}
+
+    def _news_worker(self, channel):
+        try:
+            res = self._fetch_channel_news(channel)
+            self._news_result = res
+            self._news_ts = time.time()
+            if res.get("ok") and res.get("html"):
+                self._tg_event({"type": "news", "channel": channel,
+                                "post_id": res.get("post_id", ""),
+                                "date": res.get("date", ""),
+                                "html": res.get("html", "")})
+            else:
+                self._tg_event({"type": "news_error"})
+        except Exception as e:
+            storage.log("[news] worker: %s" % e)
+            self._tg_event({"type": "news_error"})
+        finally:
+            self._news_fetching = False
 
     def news_via_tg(self, channel="mackkill"):
         """Fallback новостей через Telegram-сессию, если HTTP-скрейпинг не сработал."""
@@ -1127,87 +1268,181 @@ class Api:
         return {"ok": False, "async": False}
 
     def get_support_news(self):
-        return self._fetch_channel_news("mackkill")
+        return self.get_news()
+
+    def _clean_post_html(self, html):
+        """Чистим HTML поста Telegram: убираем опасные теги и обработчики."""
+        import re as _re
+        html = _re.sub(r'<(script|iframe|object|embed|form|input|button|textarea|select|style)\b[^>]*>.*?</\1>', '', html, flags=_re.DOTALL | _re.IGNORECASE)
+        html = _re.sub(r'<(script|iframe|object|embed|form|input|button|textarea|select|style)\b[^>]*/>', '', html, flags=_re.IGNORECASE)
+        html = _re.sub(r'\s+on\w+\s*=\s*["\'][^"\']*["\']', '', html, flags=_re.IGNORECASE)
+        html = _re.sub(r'\s+on\w+\s*=\s*\S+', '', html, flags=_re.IGNORECASE)
+        html = _re.sub(r'<div[^>]*class="tgme_widget_message_author[^"]*".*?</div>', '', html, flags=_re.DOTALL)
+        html = _re.sub(r'<tg-spoiler[^>]*>(.*?)</tg-spoiler>', r'<span class="spoiler">\1</span>', html)
+        html = _re.sub(r'<tg-emoji[^>]*>(.*?)</tg-emoji>', r'\1', html)
+        html = _re.sub(r'<br\s*/?>', '\n', html)
+        html = _re.sub(r'<div[^>]*class="tgme_widget_message_reply[^"]*".*?</div>\s*</div>', '', html, flags=_re.DOTALL)
+        return html.strip()
+
+    def _latest_post_id(self, channel, embed_exists) -> int:
+        """id последнего существующего поста канала (кэш — в settings).
+
+        data-post в embed-странице есть только у существующих постов; удалённый
+        пост и «id выше последнего» выглядят одинаково (err_message), поэтому
+        бинпоиск для разреженных каналов невозможен. Плотные каналы ищем
+        удвоением+бинпоиском, разреженные — последовательно (с капами).
+        """
+        last = int(self.settings.get("news_top_id") or 0) or 0
+        best = 0
+
+        if last:
+            if embed_exists(last):
+                best = last
+            else:
+                # кэш устарел — ищем ближайший существующий ниже
+                for pid in range(last - 1, max(0, last - 20), -1):
+                    if embed_exists(pid):
+                        best = pid
+                        break
+        else:
+            # холодный старт: определяем плотность канала по первым постам
+            try:
+                dense = bool(embed_exists(1) and embed_exists(2) and embed_exists(3))
+            except Exception:
+                dense = False
+            if dense:
+                lo, hi = 1, 1
+                while hi <= 5000000 and embed_exists(hi):
+                    lo = hi
+                    hi *= 2
+                while hi - lo > 1:
+                    mid = (lo + hi) // 2
+                    if embed_exists(mid):
+                        lo = mid
+                    else:
+                        hi = mid
+                best = lo
+            else:
+                # разреженный канал (как mackkill): только последовательный скан
+                for pid in range(1, 151):
+                    if embed_exists(pid):
+                        best = pid
+        if not best:
+            return 0
+
+        # дешёвый скан вверх: новые посты обычно идут подряд
+        pid = best + 1
+        misses = 0
+        while pid <= best + 40 and misses < 12:
+            if embed_exists(pid):
+                best = pid
+                misses = 0
+            else:
+                misses += 1
+            pid += 1
+
+        # раз в 6 часов — глубокий скан, чтобы догнать разреженные выбросы
+        changed = best != last
+        deep_at = float(self.settings.get("news_deep_at") or 0)
+        if time.time() - deep_at > 21600:
+            pid = best + 1
+            cap = best + 150
+            while pid <= cap:
+                if embed_exists(pid):
+                    best = pid
+                pid += 1
+            self.settings["news_deep_at"] = time.time()
+            changed = True
+
+        if changed:
+            try:
+                self.settings["news_top_id"] = best
+                storage.save_settings(self.settings)
+            except Exception:
+                pass
+        return best
 
     def _fetch_channel_news(self, channel: str) -> dict:
-        """Получить последний пост из указанного Telegram-канала."""
+        """Последний пост канала.
+
+        Старый путь t.me/s/{channel} больше не отдаёт разметку постов (JS-shell),
+        а текст постов каналов с меткой [SCAM] скрыт в embed-виджете. Поэтому:
+          1. id последнего поста находим сканом embed-страниц (_latest_post_id);
+          2. дату берём из embed (datetime);
+          3. текст — из разметки поста, а если скрыт — из og:description поста.
+        """
         import re as _re
-        import urllib.request
-        import urllib.error
         import html as _html
-        url = f"https://t.me/s/{channel}"
-        try:
+        import urllib.request
+
+        def _get(url):
             req = urllib.request.Request(url, headers={
-                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
-            })
-            # обходим системный прокси — при включённом VPN t.me недоступен через локальный прокси
-            _noproxy = urllib.request.ProxyHandler({})
-            _opener = urllib.request.build_opener(_noproxy)
-            with _opener.open(req, timeout=10) as resp:
-                data = resp.read().decode("utf-8", errors="replace")
-            # Ищем все посты (data-post="channel/123")
-            post_blocks = _re.findall(
-                r'<div[^>]*class="tgme_widget_message_wrap[^"]*"[^>]*data-post="([^"]+)"[^>]*>.*?'
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                              "AppleWebKit/537.36"})
+            # обходим системный прокси — при включённом VPN t.me недоступен через него
+            op = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+            with op.open(req, timeout=8) as resp:
+                return resp.read().decode("utf-8", errors="replace")
+
+        def _embed_exists(pid):
+            try:
+                return 'data-post="' in _get(f"https://t.me/{channel}/{pid}?embed=1")
+            except Exception:
+                return False
+
+        top = self._latest_post_id(channel, _embed_exists)
+        if not top:
+            # постов нет/скан сорвался — показываем хотя бы описание канала
+            try:
+                og = _re.search(r'property="og:description"[^>]*content="([^"]*)"',
+                                _get(f"https://t.me/{channel}"))
+                if og and og.group(1).strip():
+                    text = _html.unescape(og.group(1)).strip()
+                    html = _html.escape(text).replace("\n", "<br>")
+                    return {"ok": True, "html": html, "post_id": "",
+                            "date": "", "disabled": self.settings.get("news_off", False)}
+            except Exception:
+                pass
+            return {"ok": False, "html": "", "post_id": "", "date": "",
+                    "disabled": self.settings.get("news_off", False)}
+
+        date_str = ""
+        html = ""
+        try:
+            emb = _get(f"https://t.me/{channel}/{top}?embed=1")
+            dm = _re.search(r'datetime="([^"]+)"', emb)
+            if dm:
+                date_str = dm.group(1)
+            blocks = _re.findall(
                 r'<div[^>]*class="tgme_widget_message_text[^"]*"[^>]*>(.*?)</div>\s*'
                 r'(?:<div[^>]*class="tgme_widget_message_footer)',
-                data, _re.DOTALL
-            )
-            if not post_blocks:
-                # Фоллбэк: ищем посты без footer
-                post_blocks = _re.findall(
-                    r'data-post="([^"]+)"[^>]*>.*?'
-                    r'<div[^>]*class="tgme_widget_message_text[^"]*"[^>]*>(.*?)</div>',
-                    data, _re.DOTALL
-                )
-            if not post_blocks:
-                # Постов не нашли: t.me/s может отдать «веб-апп»-страницу или канал
-                # приватный. Возвращаем ok=False — фронт переключится на загрузку
-                # новостей через Telegram-сессию аккаунта (news_via_tg).
-                return {"ok": False, "html": "", "post_id": "", "date": "", "disabled": self.settings.get("news_off", False)}
-            post_id, post_html = post_blocks[-1]
-            # Очищаем нежелательные теги, но сохраняем форматирование TG
-            html = post_html
-            # Безопасность: удаляем опасные теги
-            html = _re.sub(r'<(script|iframe|object|embed|form|input|button|textarea|select|style)\b[^>]*>.*?</\1>', '', html, flags=_re.DOTALL | _re.IGNORECASE)
-            html = _re.sub(r'<(script|iframe|object|embed|form|input|button|textarea|select|style)\b[^>]*/>', '', html, flags=_re.IGNORECASE)
-            # Удаляем обработчики событий
-            html = _re.sub(r'\s+on\w+\s*=\s*["\'][^"\']*["\']', '', html, flags=_re.IGNORECASE)
-            html = _re.sub(r'\s+on\w+\s*=\s*\S+', '', html, flags=_re.IGNORECASE)
-            # Удаляем <span class="tgme_widget_message_wrap..."> вложенные (реклама и т.д.)
-            html = _re.sub(r'<div[^>]*class="tgme_widget_message_author[^"]*".*?</div>', '', html, flags=_re.DOTALL)
-            # Удаляем спойлеры (оставляем текст)
-            html = _re.sub(r'<tg-spoiler[^>]*>(.*?)</tg-spoiler>', r'<span class="spoiler">\1</span>', html)
-            # Удаляем <tg-emoji> теги, оставляем текст
-            html = _re.sub(r'<tg-emoji[^>]*>(.*?)</tg-emoji>', r'\1', html)
-            # Превращаем <br> в переносы строк
-            html = _re.sub(r'<br\s*/?>', '\n', html)
-            # Убирают <div class="tgme_widget_message_reply..."> (цитаты из других постов)
-            html = _re.sub(r'<div[^>]*class="tgme_widget_message_reply[^"]*".*?</div>\s*</div>', '', html, flags=_re.DOTALL)
-            html = html.strip()
-            # Дата
-            date_match = _re.search(r'datetime="([^"]+)"', data[data.rfind(post_id):])
-            date_str = date_match.group(1) if date_match else ""
-            if not date_str:
-                dates = _re.findall(r'datetime="([^"]+)"', data)
-                date_str = dates[-1] if dates else ""
-            return {
-                "ok": True, "html": html, "post_id": post_id,
-                "date": date_str, "disabled": self.settings.get("news_off", False)
-            }
-        except Exception as e:
-            storage.log(f"[news] ошибка получения: {e}")
-            return {"ok": False, "html": "", "post_id": "", "date": "", "disabled": self.settings.get("news_off", False)}
+                emb, _re.DOTALL)
+            if blocks:
+                html = self._clean_post_html(blocks[-1])
+        except Exception:
+            pass
+        if not html:
+            # текст в embed скрыт (SCAM/возрастное) — берём og:description поста
+            try:
+                og = _re.search(r'property="og:description"[^>]*content="([^"]*)"',
+                                _get(f"https://t.me/{channel}/{top}"))
+                if og and og.group(1).strip():
+                    text = _html.unescape(og.group(1)).strip()
+                    html = _html.escape(text).replace("\n", "<br>")
+            except Exception:
+                pass
+        if not html:
+            return {"ok": False, "html": "", "post_id": "", "date": "",
+                    "disabled": self.settings.get("news_off", False)}
+        return {"ok": True, "html": html, "post_id": "%s/%d" % (channel, top),
+                "date": date_str, "disabled": self.settings.get("news_off", False)}
 
     def shutdown(self):
         try:
             self._stop_stats_loop()
+            self._persist_traffic()
             self._tun.stop()
             self._xray.stop()
-            with self._game_lock:
-                pids = list(self._game_suspended)
-                self._game_suspended = {}
-            if pids:
-                _suspend_pids(pids, resume=True)
             if self.settings.get("system_proxy", True):
                 win_proxy.disable_proxy()
         except Exception:
@@ -1394,22 +1629,6 @@ def apply_priority(high: bool) -> bool:
 # Тяжёлые фоновые приложения, которые «игровой режим» замораживает ради FPS.
 # Ключ — имя процесса в нижнем регистре, значение — человеческое имя для UI.
 # Свой список можно расширить прямо здесь: добавьте "имя.exe": "Название".
-GAME_PROCESSES = {
-    "chrome.exe": "Chrome",
-    "msedge.exe": "Edge",
-    "firefox.exe": "Firefox",
-    "opera.exe": "Opera",
-    "brave.exe": "Brave",
-    "discord.exe": "Discord",
-    "spotify.exe": "Spotify",
-    "onedrive.exe": "OneDrive",
-    "dropbox.exe": "Dropbox",
-    "teams.exe": "Teams",
-    "slack.exe": "Slack",
-    "telegram.exe": "Telegram",
-}
-
-
 def apply_autostart(enabled: bool) -> bool:
     """Включает/выключает автозапуск приложения при входе в Windows (HKCU Run).
 
@@ -1440,37 +1659,3 @@ def apply_autostart(enabled: bool) -> bool:
     except Exception as e:
         storage.log("[autostart] ошибка: %s" % e)
         return False
-
-
-def _suspend_pids(pids, resume: bool = False) -> None:
-    """Приостанавливает (или возобновляет) процессы по PID через NtSuspendProcess.
-
-    Через API ntdll это работает даже для процессов без окна. Процессы других
-    пользователей/служб, на которые нет прав, просто пропускаются.
-    """
-    if not pids:
-        return
-    import ctypes
-    try:
-        ntdll = ctypes.WinDLL("ntdll")
-        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
-        PROCESS_SUSPEND_RESUME = 0x0800
-        for pid in pids:
-            try:
-                pid = int(pid)
-            except (TypeError, ValueError):
-                continue
-            if pid <= 0:
-                continue
-            handle = kernel32.OpenProcess(PROCESS_SUSPEND_RESUME, False, pid)
-            if not handle:
-                continue
-            try:
-                if resume:
-                    ntdll.NtResumeProcess(handle)
-                else:
-                    ntdll.NtSuspendProcess(handle)
-            finally:
-                kernel32.CloseHandle(handle)
-    except Exception as e:
-        storage.log("[game] ошибка suspend/resume: %s" % e)

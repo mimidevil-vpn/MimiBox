@@ -345,6 +345,13 @@ class XrayManager:
                 flags |= 0x00000080      # HIGH_PRIORITY_CLASS
             kwargs["creationflags"] = flags
 
+        # Go-сборщик мусора упирается в память ядра неохотно: GOMEMLIMIT
+        # заставляет его держать heap под лимитом (иначе RSS растёт до
+        # пиковых значений и отдаётся ОС только когда упрётся в потолок).
+        kwargs["env"] = dict(os.environ)
+        kwargs["env"]["GOMEMLIMIT"] = "300MiB"
+        kwargs["env"]["GOGC"] = "80"
+
         self.proc = subprocess.Popen(
             [exe, "run", "-c", cfg_path],
             cwd=os.path.dirname(exe) or None,

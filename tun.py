@@ -220,12 +220,12 @@ class TunManager:
                  # warn, а не info: на info tun2socks пишет строку на КАЖДОЕ
                  # соединение — это тысячи строк в минуту впустую. Ошибки старта
                  # приходят уровнями error/fatal, их мы по-прежнему видим.
-                 "--loglevel", "warn",
-                 "--tcp-auto-tuning"],
+                 "--loglevel", "warn"],
                 cwd=os.path.dirname(exe) or None,
                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                 text=True, encoding="utf-8", errors="ignore",
                 startupinfo=si, creationflags=_NO_WINDOW,
+                env=dict(os.environ, GOMEMLIMIT="300MiB", GOGC="80"),
             )
             self._last_lines = []
             self._log_thread = threading.Thread(

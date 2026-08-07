@@ -191,6 +191,10 @@ DEFAULT_SETTINGS = {
     "has_custom_font": False,   # загружен ли .ttf шрифт
     "last_news_id": "",         # ID последнего показанного поста
     "news_off": False,          # отключить уведомления о новых постах
+    "news_top_id": 0,           # последний найденный id поста канала (кэш скана)
+    "news_deep_at": 0.0,        # время последнего глубокого скана канала
+    "traffic_up": 0,            # кумулятивный трафик, байты (за все запуски)
+    "traffic_down": 0,
     "snow_enabled": True,       # снежинки на подключённом сервере
     "autostart": False,         # автозапуск приложения при входе в Windows
     "game_mode": False,         # игровой режим: заморозка фоновых приложений
@@ -402,11 +406,13 @@ def load_background() -> str:
                 except Exception:
                     pass
                 return base64.b64encode(out).decode("ascii")
+            log(f"[storage] фон прочитан: {name}, {len(raw)} байт")
             return base64.b64encode(raw).decode("ascii")
         except FileNotFoundError:
             continue
         except Exception:
             continue
+    log("[storage] фона нет (background.jpg/png не найдены)")
     return ""
 
 
@@ -594,12 +600,17 @@ def _read_resource_raw(rel: str):
 
 def _image_b64(raw: bytes, max_side: int = 1600, fmt: str = "jpeg",
                quality: int = 78, keep_alpha: bool = False,
-               skip_small: int = 350 * 1024) -> str:
+               skip_small: int = 350 * 1024,
+               brighten: float = 1.0, gamma: float = 1.0) -> str:
     """Пережимает картинку PIL'ом перед отправкой в JS-мост.
 
     Огромные base64-строки (2–3+ МБ) через pywebview-мост кладут рендерер
     WebView2 — чёрный экран и мёртвый UI. Поэтому все картинки режем до
     скромных размеров (JPEG для непрозрачных фото, PNG для прозрачных аватаров).
+
+    brighten/gamma — подъём ночных сцен-фонов: PNG почти чёрные (85–92% пикселей
+    темнее 32/255) и за стеклом сливаются с фоном. Яркость +1.6 и гамма 0.7
+    поднимают звёзды/неон/сакуру, не выжигая картинку.
     Если PIL недоступен или файл не картинка — возвращаем base64 оригинала,
     чтобы ничего не сломать.
     """
@@ -608,7 +619,7 @@ def _image_b64(raw: bytes, max_side: int = 1600, fmt: str = "jpeg",
     try:
         if skip_small and len(raw) <= skip_small:
             return base64.b64encode(raw).decode("ascii")
-        from PIL import Image
+        from PIL import Image, ImageEnhance
         import io
         im = Image.open(io.BytesIO(raw))
         im.load()
@@ -618,6 +629,13 @@ def _image_b64(raw: bytes, max_side: int = 1600, fmt: str = "jpeg",
             im = im.convert("RGB")
         if max_side and (im.width > max_side or im.height > max_side):
             im.thumbnail((max_side, max_side), Image.LANCZOS)
+        if brighten != 1.0 or gamma != 1.0:
+            if brighten != 1.0:
+                im = ImageEnhance.Brightness(im).enhance(brighten)
+            if gamma != 1.0:
+                lut = [int(255.0 * (i / 255.0) ** gamma)
+                       for _ in range(len(im.getbands())) for i in range(256)]
+                im = im.point(lut)
         buf = io.BytesIO()
         if fmt == "jpeg":
             im.save(buf, "JPEG", quality=quality)
@@ -625,6 +643,7 @@ def _image_b64(raw: bytes, max_side: int = 1600, fmt: str = "jpeg",
             im.save(buf, "PNG", optimize=True)
         out = buf.getvalue()
     except Exception:
+        log("[storage] PIL-сжатие картинки не удалось, отдаю оригинал")
         out = raw
     return base64.b64encode(out).decode("ascii")
 
@@ -660,15 +679,24 @@ def scene_background(scene_id: str) -> str:
     """Фоновое изображение сцены (звёзды/сакура/улица) из ресурсов приложения.
 
     Ресурсы — PNG по 2.3–2.5 МБ; через JS-мост они клали WebView2. Отдаём JPEG
-    (~150–250 КБ), картинка не теряет вида на полноэкранном фоне.
+    (~150–250 КБ), картинка не теряет вида на полноэкранном фоне. PNG ночные и
+    почти чёрные (85–92% пикселей темнее 32/255) — поднимаем яркость и гамму,
+    иначе «обои» сливаются с чёрным фоном и выглядят как чёрный экран.
     """
     rel = SCENE_FILES.get(str(scene_id or ""))
     if not rel:
         return ""
     raw = _read_resource_raw(rel)
     if not raw:
+        log(f"[storage] ресурс сцены не найден: {rel}")
         return ""
-    return _image_b64(raw, max_side=1440, fmt="jpeg", quality=70, skip_small=0)
+    b64 = _image_b64(raw, max_side=1440, fmt="jpeg", quality=70,
+                     skip_small=0, brighten=3.2, gamma=0.7)
+    if len(b64) > 2 * 1024 * 1024:
+        log(f"[storage] сцена {scene_id}: слишком большой результат — {len(b64)} байт, отдаю пусто")
+        return ""
+    log(f"[storage] сцена {scene_id}: {len(raw)} байт PNG -> {len(b64)} байт base64 JPEG")
+    return b64
 
 
 def _atomic_write_raw(path: str, data: bytes) -> bool:
