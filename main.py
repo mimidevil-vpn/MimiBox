@@ -4,6 +4,8 @@
 import os
 import sys
 import threading
+import ctypes
+from ctypes import wintypes
 
 import storage
 
@@ -59,7 +61,106 @@ def human_speed(bps: int) -> str:
     return "0 Б/с"
 
 
+# ------------------------------------------------------- один экземпляр
+# Если приложение уже запущено, повторный запуск не должен открывать новый
+# сеанс: находим окно первого экземпляра и показываем/поднимаем его (в т.ч.
+# если оно свёрнуто в трей), а сами выходим. Делаем это до создания окна,
+# чтобы второй экземпляр не тратил время на инициализацию мессенджера и т.п.
+_MUTEX_HANDLE = None
+
+
+def _acquire_single_instance(name="Local\\MimiBox"):
+    """True, если мы первый (единственный) экземпляр, False — если уже работает."""
+    global _MUTEX_HANDLE
+    kernel32 = ctypes.windll.kernel32
+    h = kernel32.CreateMutexW(None, False, name)
+    if kernel32.GetLastError() == 183:      # ERROR_ALREADY_EXISTS
+        kernel32.CloseHandle(h)
+        return False
+    _MUTEX_HANDLE = h
+    return True
+
+
+def _mimibox_pids():
+    """PID всех процессов MimiBox.exe (поиск окна без привязки к заголовку)."""
+    pids = set()
+    TH32CS_SNAPPROCESS = 0x2
+
+    class PROCESSENTRY32W(ctypes.Structure):
+        _fields_ = [
+            ("dwSize", wintypes.DWORD),
+            ("cntUsage", wintypes.DWORD),
+            ("th32ProcessID", wintypes.DWORD),
+            ("th32DefaultHeapID", ctypes.POINTER(wintypes.ULONG)),
+            ("th32ModuleID", wintypes.DWORD),
+            ("cntThreads", wintypes.DWORD),
+            ("th32ParentProcessID", wintypes.DWORD),
+            ("pcPriClassBase", ctypes.c_long),
+            ("dwFlags", wintypes.DWORD),
+            ("szExeFile", ctypes.c_wchar * 260),
+        ]
+
+    kernel32 = ctypes.windll.kernel32
+    snap = kernel32.CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0)
+    if snap == -1:
+        return pids
+    try:
+        pe = PROCESSENTRY32W()
+        pe.dwSize = ctypes.sizeof(PROCESSENTRY32W)
+        if kernel32.Process32FirstW(snap, ctypes.byref(pe)):
+            while True:
+                if pe.szExeFile.lower() == "mimibox.exe":
+                    pids.add(pe.th32ProcessID)
+                if not kernel32.Process32NextW(snap, ctypes.byref(pe)):
+                    break
+    finally:
+        kernel32.CloseHandle(snap)
+    return pids
+
+
+def _find_window_by_pids(pids):
+    """Первое top-level окно, принадлежащее одному из PID."""
+    user32 = ctypes.windll.user32
+    found = []
+
+    @ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)
+    def _cb(hwnd, _):
+        pid = wintypes.DWORD()
+        user32.GetWindowThreadProcessId(hwnd, ctypes.byref(pid))
+        if pid.value in pids:
+            found.append(hwnd)
+        return True
+
+    user32.EnumWindows(_cb, 0)
+    return found[0] if found else 0
+
+
+def _activate_existing_window(title):
+    """Показывает и поднимает уже открытое окно приложения."""
+    user32 = ctypes.windll.user32
+    hwnd = user32.FindWindowW(None, title)
+    if not hwnd:
+        hwnd = _find_window_by_pids(_mimibox_pids())
+    if not hwnd:
+        return False
+    # снимаем блокировку переднего плана, иначе SetForegroundWindow
+    # из фонового процесса может проигнорироваться
+    user32.keybd_event(0x12, 0, 0, 0)       # ALT вниз
+    user32.keybd_event(0x12, 0, 2, 0)       # ALT вверх
+    user32.ShowWindow(hwnd, 9)              # SW_RESTORE: показать/развернуть
+    user32.SetForegroundWindow(hwnd)
+    user32.BringWindowToTop(hwnd)
+    return True
+
+
 def main():
+    # Один экземпляр: повторный запуск не создаёт новое окно, а показывает уже
+    # открытое (в т.ч. свёрнутое в трей), после чего мы выходим.
+    if not _acquire_single_instance():
+        storage.log("[env] повторный запуск — активирую существующее окно")
+        _activate_existing_window(APP_TITLE)
+        return
+
     with open(resource(os.path.join("ui", "index.html")), "r", encoding="utf-8") as f:
         html = f.read()
 
