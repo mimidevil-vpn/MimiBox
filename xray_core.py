@@ -234,6 +234,11 @@ def build_config(s, socks_port: int, http_port: int, mode="global",
         "stats": {},
         "api": {"tag": "api", "services": ["StatsService"]},
         "policy": {
+            # Внутренний буфер на соединение: дефолт xray — 10240 КБ (~10 МБ),
+            # при тысячах одновременных соединений (P2P в режиме туннеля) это
+            # сотни МБ и гигабайты. 128 КБ хватает с запасом и для UDP-игр,
+            # и для потоков, а память остаётся ограниченной.
+            "levels": {"0": {"bufferSize": 128}},
             "system": {
                 "statsOutboundUplink": True,
                 "statsOutboundDownlink": True,
@@ -349,7 +354,7 @@ class XrayManager:
         # заставляет его держать heap под лимитом (иначе RSS растёт до
         # пиковых значений и отдаётся ОС только когда упрётся в потолок).
         kwargs["env"] = dict(os.environ)
-        kwargs["env"]["GOMEMLIMIT"] = "300MiB"
+        kwargs["env"]["GOMEMLIMIT"] = "256MiB"
         kwargs["env"]["GOGC"] = "80"
 
         self.proc = subprocess.Popen(

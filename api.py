@@ -462,12 +462,13 @@ class Api:
             self._log("[core] переключаюсь на %s:%s" % (srv.address, srv.port))
         sp = int(self.settings.get("socks_port", 10808))
         hp = int(self.settings.get("http_port", 10809))
+        mode, direct_entries = self._xray_route()
         try:
             exe = self._xray.start(
                 srv, sp, hp, self.settings.get("xray_path", ""),
                 on_log=self._log,
-                mode=self.settings.get("route_mode", "global"),
-                direct_entries=self.settings.get("direct_sites", []),
+                mode=mode,
+                direct_entries=direct_entries,
                 block_entries=self.settings.get("block_sites", []),
                 high_priority=bool(self.settings.get("high_priority", False)),
             )
@@ -510,6 +511,21 @@ class Api:
         self._push_speed(0, 0)
         self._log("[core] отключено")
         return {"ok": True, "state": self._state()}
+
+    def _xray_route(self):
+        """(mode, direct_entries) для ядра.
+
+        При активном туннеле любой «direct»-outbound на публичный адрес
+        уходит в default-маршрут туннеля, снова попадает в Xray через
+        tun2socks и зацикливается, плодя сокеты и память. Поэтому туннель
+        всегда работает в режиме global и без прямых исключений (они в
+        туннеле физически невыполнимы). Private/локальные адреса не идут
+        через default-маршрут — они остаются в петле безопасными.
+        """
+        if bool(self.settings.get("tun_mode", False)):
+            return "global", []
+        return (self.settings.get("route_mode", "global"),
+                self.settings.get("direct_sites", []))
 
     # ------------------------------------------------------------ режимы
     def set_modes(self, patch):
@@ -554,9 +570,15 @@ class Api:
                     self._save()
                     self._log("[tun] ошибка: %s" % e)
                     return {"error": str(e), "state": self._state()}
+                # туннель всегда работает в global без прямых исключений —
+                # перезапускаем ядро, чтобы выйти из режима rules/direct,
+                # иначе «direct» зациклится через туннель обратно в Xray
+                self._restart_core()
             elif not want_tun and was_tun:
                 self._tun.stop()
                 self._log("[tun] туннель выключен")
+                # возвращаем ядру сохранённый режим маршрутизации
+                self._restart_core()
 
         return {"ok": True, "state": self._state()}
 
@@ -625,14 +647,15 @@ class Api:
         """Перезапуск ядра с новым конфигом, туннель при этом не роняем."""
         try:
             srv = self.servers[self.selected]
+            mode, direct_entries = self._xray_route()
             self._xray.start(
                 srv,
                 int(self.settings.get("socks_port", 10808)),
                 int(self.settings.get("http_port", 10809)),
                 self.settings.get("xray_path", ""),
                 on_log=self._log,
-                mode=self.settings.get("route_mode", "global"),
-                direct_entries=self.settings.get("direct_sites", []),
+                mode=mode,
+                direct_entries=direct_entries,
                 block_entries=self.settings.get("block_sites", []),
                 high_priority=bool(self.settings.get("high_priority", False)),
             )

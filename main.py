@@ -156,7 +156,20 @@ def _activate_existing_window(title):
 def main():
     # Один экземпляр: повторный запуск не создаёт новое окно, а показывает уже
     # открытое (в т.ч. свёрнутое в трей), после чего мы выходим.
-    if not _acquire_single_instance():
+    # Исключение — перезапуск с правами администратора (--relaunch): старый
+    # экземпляр ещё жив и держит мьютекс, поэтому ждём его выхода до 15 секунд.
+    relaunch = "--relaunch" in sys.argv
+    if relaunch:
+        import time
+        deadline = time.time() + 15.0
+        while not _acquire_single_instance():
+            if time.time() >= deadline:
+                storage.log("[env] не дождались выхода старого экземпляра")
+                return
+            _activate_existing_window(APP_TITLE)
+            time.sleep(0.25)
+        storage.log("[env] перезапуск с правами администратора")
+    elif not _acquire_single_instance():
         storage.log("[env] повторный запуск — активирую существующее окно")
         _activate_existing_window(APP_TITLE)
         return

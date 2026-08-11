@@ -220,7 +220,17 @@ class TunManager:
                  # warn, а не info: на info tun2socks пишет строку на КАЖДОЕ
                  # соединение — это тысячи строк в минуту впустую. Ошибки старта
                  # приходят уровнями error/fatal, их мы по-прежнему видим.
-                 "--loglevel", "warn"],
+                 "--loglevel", "warn",
+                 # Ограничение памяти gVisor-стека: по умолчанию TCP-буферы
+                 # растут до 4 МБ на соединение (автонастройка), из-за чего
+                 # tun2socks съедает сотни МБ. Фиксируем разумный размер —
+                 # это и память, и троттлинг производительности.
+                 # ВНИМАНИЕ: bool-флаг pflag принимает значение ТОЛЬКО через
+                 # «=» в одном аргументе; два отдельных аргумента включают
+                 # флаг и оставляют «false» позиционным аргументом.
+                 "--tcp-auto-tuning=false",
+                 "--tcp-rcvbuf", "128KiB",
+                 "--tcp-sndbuf", "128KiB"],
                 cwd=os.path.dirname(exe) or None,
                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                 text=True, encoding="utf-8", errors="ignore",
