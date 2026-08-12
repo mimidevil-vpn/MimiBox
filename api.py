@@ -11,6 +11,9 @@ import json
 import time
 import queue
 import random
+import base64
+import hashlib
+import secrets
 import threading
 
 from parsing import parse_many, parse_subscription, fetch_subscription
@@ -26,6 +29,31 @@ from tg_client import TgMessenger
 EMOJI_POOL = ["🧊", "❄️", "🐧", "🌊", "⚡", "🛡️", "🚀", "🌙", "✨", "🔒",
               "🦈", "🐳", "🧭", "🎧", "🌌", "🔥", "🍀", "🎯", "💎", "🪐"]
 EMOJI_PERIOD = 3600           # секунд между сменами
+
+
+def _make_hwid() -> str:
+    """Аппаратный ID для заголовка x-hwid.
+
+    Формат панели: 10-64 символа [a-zA-Z0-9=-]. Строим из MachineGuid системы
+    (стабилен между переустановками приложения, уникален для каждого ПК);
+    если GUID недоступен — случайная строка.
+    """
+    seed = ""
+    try:
+        import winreg
+        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE,
+                            r"SOFTWARE\Microsoft\Cryptography") as key:
+            seed = str(winreg.QueryValueEx(key, "MachineGuid")[0] or "")
+    except Exception:
+        pass
+    if not seed:
+        seed = secrets.token_hex(16)
+    raw = base64.urlsafe_b64encode(
+        hashlib.sha256(seed.encode("utf-8", "ignore")).digest()
+    ).decode("ascii")
+    allowed = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789=-"
+    hw = "".join(c for c in raw if c in allowed)[:44]
+    return hw or "HW-MIMIBOX-1"
 
 
 class Api:
@@ -92,6 +120,10 @@ class Api:
         if not self.settings.get("local_id"):
             self.settings["local_id"] = "LDK-" + "".join(
                 random.choice("0123456789ABCDEF") for _ in range(4))
+            self._save()
+        # аппаратный ID для лимита устройств (x-hwid): создаётся один раз
+        if not self.settings.get("hwid_value"):
+            self.settings["hwid_value"] = _make_hwid()
             self._save()
         self._roll_emoji(force=False)
         self._log_environment()
@@ -368,8 +400,10 @@ class Api:
         url = storage.validate_url((url or "").strip())
         if not url:
             return {"error": "empty_url"}
+        hwid = self.settings.get("hwid_value", "") if self.settings.get(
+            "hwid_enabled", True) else ""
         try:
-            content, info = fetch_subscription(url)
+            content, info = fetch_subscription(url, hwid=hwid)
             parsed = parse_subscription(content)
         except Exception as e:
             err = str(e)
@@ -389,7 +423,21 @@ class Api:
         self._save_servers()
         self._mark_onboarded()
         storage.log("[sub] загружено серверов: %d" % len(parsed))
-        return {"added": len(parsed), "state": self._state()}
+        hwid_msg = self._hwid_warning(info)
+        return {"added": len(parsed), "hwid_msg": hwid_msg, "state": self._state()}
+
+    def _hwid_warning(self, info: dict):
+        """Короткий код предупреждения панели про лимит устройств, либо None.
+
+        info — данные из заголовков ответа подписки (x-hwid-*).
+        """
+        if not info:
+            return None
+        if info.get("hwid_max_devices") or info.get("hwid_limit"):
+            return "max_devices"
+        if info.get("hwid_not_supported"):
+            return "not_supported"
+        return None
 
     def refresh_subscription(self):
         """Перечитать сохранённую подписку — серверы у провайдера меняются."""
@@ -965,6 +1013,7 @@ class Api:
                 cur[key] = default
         cur["system_proxy"] = bool(patch.get("system_proxy", cur.get("system_proxy", True)))
         cur["xray_path"] = str(patch.get("xray_path", cur.get("xray_path", ""))).strip()
+        cur["hwid_enabled"] = bool(patch.get("hwid_enabled", cur.get("hwid_enabled", True)))
         cur["theme"] = patch.get("theme", cur.get("theme", "auto"))
         cur["lang"] = patch.get("lang", cur.get("lang", "ru"))
         cur["tun_dns"] = storage.validate_dns(patch.get("tun_dns", cur.get("tun_dns", "1.1.1.1")))

@@ -978,6 +978,13 @@ body.theme-light .msgr-picker{background:rgba(255,255,255,.75)}
                   <input class="input set-control" id="setTunDns" autocomplete="off" spellcheck="false">
                 </div>
                 <div class="set-row">
+                  <div>
+                    <div class="set-label" data-i18n="hwid">HWID (лимит устройств)</div>
+                    <div class="set-hint" data-i18n="hwidHint">Отправлять ID устройства при загрузке подписки</div>
+                  </div>
+                  <label class="switch"><input type="checkbox" id="setHwid"><span class="track"></span></label>
+                </div>
+                <div class="set-row">
                   <div><div class="set-label" data-i18n="xrayPath">Путь к xray.exe</div></div>
                   <input class="input set-control wide" id="setXrayPath" autocomplete="off" spellcheck="false">
                 </div>
@@ -1272,6 +1279,9 @@ const I18N = {
     bgSceneroof:'Крыши', bgScenearch:'Арка', bgScenestreet:'Улица', bgScenesakura:'Сакура', bgScenestars:'Звёзды',
     fontStylemanrope:'Manrope', fontStylesegui:'Segoe UI', fontStyleserif:'С засечками', fontStylemono:'Моно', fontStylehand:'Ручка',
     socksPort:'SOCKS-порт', httpPort:'HTTP-порт', tunDns:'DNS туннеля', xrayPath:'Путь к xray.exe',
+    hwid:'HWID (лимит устройств)', hwidHint:'Отправлять ID устройства при загрузке подписки',
+    hwid_not_supported:'Панель требует HWID — проверь, что тумблер HWID включён в настройках',
+    hwid_max_devices:'Достигнут лимит устройств этой подписки',
     highPriority:'Высокий приоритет', minimizeToTray:'Сворачивать в трей', startMinimized:'Запуск свёрнутым',
     newsOff:'Уведомления о новостях', resetTutorial:'Обучение', showAgain:'Показать заново',
     autostart:'Автозапуск при входе в Windows',
@@ -1372,6 +1382,9 @@ const I18N = {
     bgSceneroof:'Rooftop', bgScenearch:'Arch', bgScenestreet:'Street', bgScenesakura:'Sakura', bgScenestars:'Stars',
     fontStylemanrope:'Manrope', fontStylesegui:'Segoe UI', fontStyleserif:'Serif', fontStylemono:'Mono', fontStylehand:'Hand',
     socksPort:'SOCKS port', httpPort:'HTTP port', tunDns:'Tunnel DNS', xrayPath:'xray.exe path',
+    hwid:'HWID (device limit)', hwidHint:'Send device ID when fetching the subscription',
+    hwid_not_supported:'The panel requires HWID — make sure the HWID toggle is enabled in settings',
+    hwid_max_devices:'The device limit for this subscription has been reached',
     highPriority:'High priority', minimizeToTray:'Minimize to tray', startMinimized:'Start minimized',
     newsOff:'News notifications', resetTutorial:'Tutorial', showAgain:'Show again',
     autostart:'Launch on Windows startup',
@@ -1618,6 +1631,7 @@ function renderSettings(){
   $('#setSocks').value = st.socks_port != null ? st.socks_port : 10808;
   $('#setHttp').value = st.http_port != null ? st.http_port : 10809;
   $('#setTunDns').value = st.tun_dns || '';
+  $('#setHwid').checked = !!st.hwid_enabled;
   $('#setXrayPath').value = st.xray_path || '';
   const core = S.xray_found ? '✓' : '✕', tun = S.tun_found ? '✓' : '✕', admin = S.is_admin ? '✓' : '✕';
   $('#pfXray').textContent = core;
@@ -1747,6 +1761,7 @@ async function importSub(){
   } else {
     applyState(r);
     toast(t('subImported') + ' ' + r.added, 'ok');
+    if (r.hwid_msg) { const m = t('hwid_' + r.hwid_msg); if (m) toast(m, 'warn'); }
   }
   renderAll();
 }
@@ -1758,7 +1773,7 @@ async function refreshSub(){
   try { r = await api().refresh_subscription(); } catch(e){ r = {error: String(e)}; }
   $('#subRefreshBtn').disabled = false;
   if (r.error) toast(t('subFailed'), 'err');
-  else { applyState(r); toast(t('subImported') + ' ' + r.added, 'ok'); }
+  else { applyState(r); toast(t('subImported') + ' ' + r.added, 'ok'); if (r.hwid_msg) { const m = t('hwid_' + r.hwid_msg); if (m) toast(m, 'warn'); } }
   renderAll();
 }
 
@@ -3492,6 +3507,7 @@ bindToggle('#setHighPri', 'high_priority');
 bindToggle('#setNewsOff', 'news_off');
 bindToggle('#setAutostart', 'autostart');
 bindToggle('#setGame', 'game_mode');
+bindToggle('#setHwid', 'hwid_enabled');
 
 $('#saveSettingsBtn').addEventListener('click', saveSettingsForm);
 

@@ -3,6 +3,7 @@
 
 import json
 import base64
+import platform
 import ssl
 import urllib.request
 import urllib.error
@@ -711,16 +712,39 @@ def _is_html_body(text: str) -> bool:
             or "<head" in low or "<title" in low)
 
 
-def fetch_subscription(url: str, timeout: float = 15.0) -> tuple:
+def _hwid_headers(hwid: str) -> dict:
+    """Заголовки устройства для панелей с лимитом HWID (Remnawave и совместимые).
+
+    Обязателен только x-hwid (10-64 символа [a-zA-Z0-9=-]); остальные помогают
+    панели точнее распознать устройство в списке подключённых.
+    """
+    headers = {"x-hwid": hwid}
+    try:
+        headers["x-device-os"] = "Windows"
+        headers["x-ver-os"] = platform.version() or platform.release() or ""
+        headers["x-device-model"] = platform.node() or platform.machine() or "PC"
+    except Exception:
+        pass
+    return headers
+
+
+def fetch_subscription(url: str, timeout: float = 15.0, hwid: str = "") -> tuple:
     """Возвращает (содержимое, инфо о подписке).
 
     Панели (Marzban, 3x-ui, Remnawave и прочие) кладут лимиты и срок действия
     в заголовки ответа — оттуда и берём остаток трафика и дату окончания.
+
+    hwid — аппаратный ID устройства: если задан, при запросе уходят заголовки
+    x-hwid/x-device-* (лимит устройств Remnawave). Флаги x-hwid-* из ответа
+    панели попадают в info.
     """
+    extra = _hwid_headers(hwid) if hwid else {}
     last_err = None
     for attempt, ua in enumerate(_SUB_USER_AGENTS):
         for verify in (True, False):
-            req = urllib.request.Request(url, headers={"User-Agent": ua})
+            headers = {"User-Agent": ua}
+            headers.update(extra)
+            req = urllib.request.Request(url, headers=headers)
             try:
                 ctx = _make_ssl_context(verify)
                 handler = urllib.request.ProxyHandler({})
@@ -732,6 +756,16 @@ def fetch_subscription(url: str, timeout: float = 15.0) -> tuple:
                     raise ValueError("html_response")
                 headers = resp.headers
                 info = parse_userinfo(headers.get("subscription-userinfo", ""))
+
+                # Лимит устройств (HWID): панель сигнализирует флагами, когда
+                # подписка требует HWID или исчерпан лимит устройств — отдаём
+                # их дальше, чтобы UI мог показать предупреждение.
+                for h, k in (("x-hwid-active", "hwid_active"),
+                             ("x-hwid-not-supported", "hwid_not_supported"),
+                             ("x-hwid-max-devices-reached", "hwid_max_devices"),
+                             ("x-hwid-limit", "hwid_limit")):
+                    if str(headers.get(h, "")).strip().lower() in ("1", "true", "yes"):
+                        info[k] = True
 
                 title = _maybe_base64(headers.get("profile-title", ""))
                 if title:

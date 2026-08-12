@@ -156,6 +156,9 @@ DEFAULT_SETTINGS = {
     "subscription_url": "",
     "sub_info": {},             # upload/download/total/expire из заголовка панели
     "sub_updated": 0,           # когда подписка обновлялась в последний раз
+    # ---- лимит устройств (HWID, Remnawave и совместимые панели) ----
+    "hwid_enabled": True,       # слать x-hwid при загрузке подписки
+    "hwid_value": "",           # аппаратный ID устройства (генерируется один раз)
     "theme": "auto",            # auto (следует теме системы) | light | dark
     "lang": "ru",
     "intro_done": False,        # интро-экран показывается только один раз
