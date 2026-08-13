@@ -64,3 +64,47 @@ Type: files; Name: "{app}\\LDK2ray.exe"
 ; Настройки и список серверов в {userappdata}\\MimiBox НЕ трогаем: обновление
 ; часто идёт через «удалить и поставить заново», и стирать их — значит терять
 ; подписку пользователя.
+
+[Code]
+; Перед заменой файлов аккуратно закрываем запущенный MimiBox: шлём guard-окну
+; (MimiBoxShutdownGuard) служебное сообщение WM_MIMIBOX_QUIT. Приложение снимает
+; системный прокси и выходит штатно, поэтому браузеры не остаются без интернета,
+; пока идёт установка, и файлы не заняты.
+const
+  WM_MIMIBOX_QUIT = $8001;
+  GRACEFUL_WAIT_MS = 15000;
+
+function FindWindowW(ClassName, WindowName: string): LongInt;
+  external 'FindWindowW@user32.dll stdcall';
+function PostMessageW(hWnd: LongInt; Msg: Cardinal; wParam, lParam: LongInt): Boolean;
+  external 'PostMessageW@user32.dll stdcall';
+function GetWindowThreadProcessId(hWnd: LongInt; var ProcessId: Cardinal): Cardinal;
+  external 'GetWindowThreadProcessId@user32.dll stdcall';
+function OpenProcess(DesiredAccess: Cardinal; bInheritHandle: Boolean; ProcessId: Cardinal): LongInt;
+  external 'OpenProcess@kernel32.dll stdcall';
+function WaitForSingleObject(hHandle: LongInt; Milliseconds: Cardinal): Cardinal;
+  external 'WaitForSingleObject@kernel32.dll stdcall';
+function CloseHandle(hObject: LongInt): Boolean;
+  external 'CloseHandle@kernel32.dll stdcall';
+
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+var
+  GuardHwnd: LongInt;
+  ProcId: Cardinal;
+  hProc: LongInt;
+begin
+  Result := '';
+  NeedsRestart := False;
+  GuardHwnd := FindWindowW('MimiBoxShutdownGuard', '');
+  if GuardHwnd = 0 then Exit;
+
+  if not PostMessageW(GuardHwnd, WM_MIMIBOX_QUIT, 0, 0) then Exit;
+
+  // ждём, пока приложение снимет прокси и выйдет из процесса
+  GetWindowThreadProcessId(GuardHwnd, ProcId);
+  if ProcId = 0 then Exit;
+  hProc := OpenProcess($00100000, False, ProcId);  // SYNCHRONIZE
+  if hProc = 0 then Exit;
+  WaitForSingleObject(hProc, GRACEFUL_WAIT_MS);
+  CloseHandle(hProc);
+end;

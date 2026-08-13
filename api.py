@@ -162,7 +162,8 @@ class Api:
         # ДО того, как процесс будет убит. Иначе после входа в систему
         # браузеры ходят в мёртвый локальный порт.
         win_session.start(on_end=self._on_session_end,
-                          on_cancel=self._on_session_cancel)
+                          on_cancel=self._on_session_cancel,
+                          on_quit=self._on_session_quit)
         # Зависшее ядро от прошлого запуска может держать порт: первый проход
         # _cleanup_stale_proxy() увидел живой порт и оставил прокси. Повторяем
         # проверку уже после того, как _cleanup_orphans прибил ядро.
@@ -297,6 +298,23 @@ class Api:
                 storage.log("[proxy] шутдаун отменён — системный прокси вернул")
         except Exception:
             pass
+
+    def _on_session_quit(self):
+        """Установщик просит корректно выйти перед заменой файлов.
+
+        Штатный shutdown() снимет системный прокси, и браузеры не останутся
+        без интернета, пока идёт переустановка. Вызывается из потока win_session.
+        """
+        storage.log("[app] установщик просит корректно завершиться")
+        cb = self._on_quit_cb
+        if cb:
+            try:
+                cb()
+            except Exception as e:
+                storage.log("[app] ошибка завершения: %s" % e)
+        else:
+            # приложение ещё не поднялось до конца — хотя бы снимаем прокси
+            self._cleanup_stale_proxy()
 
     def _auto_refresh_subscription(self):
         """При старте молча обновляем подписку, если серверов нет или данные

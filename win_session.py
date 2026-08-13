@@ -21,10 +21,14 @@ from ctypes import wintypes
 _WNDPROC = None            # живая ссылка на WndProc — иначе GC сломает окно
 _CB_END = lambda: None     # сеанс завершается — восстановить исходный прокси
 _CB_CANCEL = lambda: None  # сеанс отменили — вернуть наш прокси, если нужен
+_CB_QUIT = lambda: None    # установщик просит корректно выйти (снять прокси)
 _ENDING = False            # завершается ли сеанс прямо сейчас
 
 WM_QUERYENDSESSION = 0x0011
 WM_ENDSESSION = 0x0016
+# Служебное сообщение «корректно выйди»: его шлёт установщик перед заменой
+# файлов, чтобы снять системный прокси до того, как процесс будет убит.
+WM_MIMIBOX_QUIT = 0x8001
 _CLASS_NAME = "MimiBoxShutdownGuard"
 
 
@@ -33,15 +37,17 @@ def session_ending() -> bool:
     return _ENDING
 
 
-def start(on_end=None, on_cancel=None):
+def start(on_end=None, on_cancel=None, on_quit=None):
     """Запускает сторожевой поток со скрытым окном (идемпотентно по факту).
 
     on_end вызывается, когда сеанс завершается (выключение/перезагрузка/выход),
-    on_cancel — когда завершение отменили (шутдаун не прошёл).
+    on_cancel — когда завершение отменили (шутдаун не прошёл),
+    on_quit — когда установщик просит корректно выйти (снять прокси и выйти).
     """
-    global _CB_END, _CB_CANCEL
+    global _CB_END, _CB_CANCEL, _CB_QUIT
     _CB_END = on_end or _CB_END
     _CB_CANCEL = on_cancel or _CB_CANCEL
+    _CB_QUIT = on_quit or _CB_QUIT
     threading.Thread(target=_run, daemon=True, name="win-session-guard").start()
 
 
@@ -50,6 +56,39 @@ def _safe(cb):
         cb()
     except Exception:
         pass
+
+
+def find_window(pid=0):
+    """Дескриптор guard-окна процесса (0 = любого). Или 0, если не найдено."""
+    user32 = ctypes.windll.user32
+    user32.FindWindowW.restype = wintypes.HWND
+    user32.FindWindowW.argtypes = [wintypes.LPCWSTR, wintypes.LPCWSTR]
+    hwnd = user32.FindWindowW(_CLASS_NAME, None)
+    if hwnd and pid:
+        user32.GetWindowThreadProcessId.restype = wintypes.DWORD
+        user32.GetWindowThreadProcessId.argtypes = [wintypes.HWND,
+                                                    ctypes.POINTER(wintypes.DWORD)]
+        proc = wintypes.DWORD(0)
+        user32.GetWindowThreadProcessId(hwnd, ctypes.byref(proc))
+        if proc.value != pid:
+            return 0
+    return hwnd or 0
+
+
+def post_graceful_quit(pid=0):
+    """Просит запущенное приложение корректно завершиться (снять прокси и выйти).
+
+    Используется установщиком перед заменой файлов и тестами. Возвращает True,
+    если сообщение доставлено окну-сторожу.
+    """
+    hwnd = find_window(pid)
+    if not hwnd:
+        return False
+    user32 = ctypes.windll.user32
+    user32.PostMessageW.restype = wintypes.BOOL
+    user32.PostMessageW.argtypes = [wintypes.HWND, wintypes.UINT,
+                                    wintypes.WPARAM, wintypes.LPARAM]
+    return bool(user32.PostMessageW(hwnd, WM_MIMIBOX_QUIT, 0, 0))
 
 
 def _run():
@@ -82,6 +121,10 @@ def _run():
                         # шутдаун отменили — возвращаемся к нормальной работе
                         _ENDING = False
                         _safe(_CB_CANCEL)
+                    return 0
+                if msg == WM_MIMIBOX_QUIT:
+                    # установщик перед заменой файлов: снять прокси и выйти
+                    _safe(_CB_QUIT)
                     return 0
                 return user32.DefWindowProcW(hwnd, msg, wparam, lparam)
             except Exception:
