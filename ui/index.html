@@ -353,6 +353,16 @@ select.input{appearance:none;background-image:linear-gradient(45deg,transparent 
 #newsBanner .nb-body{flex:1;color:var(--text);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #newsBanner .nb-x{flex:none}
 
+/* ---------- update banner ---------- */
+#updateBanner{position:fixed;top:0;left:0;right:0;z-index:71;transform:translateY(-110%);transition:transform .35s var(--ease);
+  background:linear-gradient(90deg,rgba(122,255,186,.14),rgba(132,180,255,.10));border-bottom:1px solid rgba(122,255,186,.3);
+  backdrop-filter:blur(14px);display:flex;align-items:center;gap:12px;padding:11px 22px}
+#updateBanner.show{transform:translateY(0)}
+#updateBanner .ub-title{font-weight:800;font-size:13px;color:#7AFFBA}
+#updateBanner .ub-date{font-size:11px;color:var(--dim)}
+#updateBanner .ub-body{flex:1;color:var(--text);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#updateBanner .ub-x{flex:none}
+
 /* ---------- игровой режим: полноэкранное уведомление ---------- */
 #gameOverlay{position:fixed;inset:0;z-index:200;display:grid;place-items:center;background:rgba(8,8,10,.62);backdrop-filter:blur(6px)}
 #gameOverlay[hidden]{display:none}
@@ -999,6 +1009,10 @@ body.theme-light .msgr-picker{background:rgba(255,255,255,.75)}
                   <div class="set-control" style="width:auto"><span class="badge" id="buildBadge">…</span></div>
                 </div>
                 <div class="set-row">
+                  <div><div class="set-label" data-i18n="updateCheck">Проверка обновлений</div></div>
+                  <button class="btn ghost small" id="checkUpdateBtn" data-i18n="updateCheckBtn">Проверить</button>
+                </div>
+                <div class="set-row">
                   <div><div class="set-label" data-i18n="dataFolder">Папка с данными</div></div>
                   <button class="btn ghost small" id="dataFolderBtn" data-i18n="openFolder">Открыть</button>
                 </div>
@@ -1202,6 +1216,17 @@ body.theme-light .msgr-picker{background:rgba(255,255,255,.75)}
   <button class="btn ghost small nb-x" id="nbClose">✕</button>
 </div>
 
+<div id="updateBanner">
+  <div>
+    <div class="ub-title" id="ubTitle">—</div>
+    <div class="ub-date" id="ubDate"></div>
+  </div>
+  <div class="ub-body" id="ubBody"></div>
+  <button class="btn primary small" id="ubOpen" data-i18n="updateDownload">Скачать</button>
+  <button class="btn ghost small" id="ubLater" data-i18n="updateLater">Позже</button>
+  <button class="btn ghost small ub-x" id="ubSkip" data-i18n="updateSkip" title="">Скрыть</button>
+</div>
+
 <div id="gameOverlay" hidden>
   <div class="glass game-card">
     <div class="game-icon">🎮</div>
@@ -1288,6 +1313,12 @@ const I18N = {
     gameMode:'Игровой режим', gameModeHint:'Пауза мессенджера и фоновых задач ради FPS',
     gameOverlayTitle:'Игровой режим', gameOverlayDesc:'Мессенджер и фоновые задачи приостановлены:', gameOverlayOk:'Понятно', gameOverlayOff:'Выключить игровой режим', gameFreezeMessenger:'Мессенджер',
     dataFolder:'Папка с данными', openFolder:'Открыть', buildInfo:'Сборка',
+    updateCheck:'Проверка обновлений', updateCheckBtn:'Проверить',
+    updateTitle:'Доступно обновление', updateAvailable:'Вышла новая версия MimiBox',
+    updateDownload:'Скачать', updateLater:'Позже', updateSkip:'Скрыть',
+    updateSkipHint:'Не напоминать об этой версии',
+    updateUpToDate:'Установлена последняя версия', updateFail:'Не удалось проверить обновления',
+    updateSkipped:'Обновление скрыто',
     saveBtn:'Сохранить настройки',
     profileDesc:'Подписка, Telegram, детали.',
     telegram:'Telegram', linkTg:'Привязать', unlinkTg:'Отвязать', tgHint:'Аккаунт должен быть публичным',
@@ -1392,6 +1423,12 @@ const I18N = {
     gameMode:'Game mode', gameModeHint:'Pause messenger and background tasks for better FPS',
     gameOverlayTitle:'Game mode', gameOverlayDesc:'Messenger and background tasks are paused:', gameOverlayOk:'Got it', gameOverlayOff:'Turn off game mode', gameFreezeMessenger:'Messenger',
     dataFolder:'Data folder', openFolder:'Open', buildInfo:'Build',
+    updateCheck:'Updates', updateCheckBtn:'Check',
+    updateTitle:'Update available', updateAvailable:'A new version of MimiBox is available',
+    updateDownload:'Download', updateLater:'Later', updateSkip:'Hide',
+    updateSkipHint:'Don\'t remind about this version',
+    updateUpToDate:'You have the latest version', updateFail:'Failed to check for updates',
+    updateSkipped:'Update hidden',
     saveBtn:'Save settings',
     profileDesc:'Subscription, Telegram, details.',
     telegram:'Telegram', linkTg:'Link', unlinkTg:'Unlink', tgHint:'Account must be public',
@@ -3419,6 +3456,38 @@ window.__pushLog = (line) => {
 };
 window.__pushHint = (text) => { if (text) toast(text, 'warn'); };
 window.__pushResume = () => { try { toast(t('resumeToast'), 'ok'); refreshFromBackend(); } catch(e){} };
+window.__pushUpdate = (data) => { if (data && data.ok) showUpdateBanner(data); };
+
+let updData = null;
+function showUpdateBanner(data){
+  updData = data;
+  $('#ubTitle').textContent = t('updateTitle') + ' ' + data.version;
+  $('#ubDate').textContent = data.date || '';
+  const txt = (data.notes || '').replace(/\s+/g, ' ').trim();
+  $('#ubBody').textContent = txt || t('updateAvailable');
+  $('#ubOpen').hidden = !data.download_url;
+  $('#ubSkip').title = t('updateSkipHint');
+  $('#updateBanner').classList.add('show');
+}
+function closeUpdateBanner(){
+  $('#updateBanner').classList.remove('show');
+  updData = null;
+}
+async function manualCheckUpdate(){
+  if (!api()) return;
+  const btn = $('#checkUpdateBtn');
+  if (btn) btn.disabled = true;
+  try {
+    const r = await api().check_update(true);
+    if (r && r.ok) showUpdateBanner(r);
+    else if (r && r.skipped) toast(t('updateSkipped') + ' ' + r.current, 'ok');
+    else toast(t('updateUpToDate') + ' ' + (r ? r.current : ''), 'ok');
+  } catch(e){
+    toast(t('updateFail') + ' ' + e, 'err');
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
 window.__pushGame = (list) => {
   const ov = $('#gameOverlay');
   if (!ov) return;
@@ -3547,6 +3616,14 @@ $('#nbClose').addEventListener('click', closeNews);
 $('#newsRefreshBtn').addEventListener('click', renderNews);
 $('#newsOpenBtn').addEventListener('click', () => { const a = document.createElement('a'); a.dataset.ext = 'https://t.me/' + NEWS_CHANNEL; openExt(a); });
 $('#newsReadBtn').addEventListener('click', async () => { if (!api() || !newsData) return; try { await api().save_settings({last_news_id: newsData.post_id}); toast(t('savedToast'), 'ok'); renderNews(); } catch(e){} });
+$('#ubOpen').addEventListener('click', () => { if (updData && updData.download_url && api()) { try { api().open_external(updData.download_url); } catch(e){} } closeUpdateBanner(); });
+$('#ubLater').addEventListener('click', closeUpdateBanner);
+$('#ubSkip').addEventListener('click', async () => {
+  const v = updData ? updData.version : '';
+  closeUpdateBanner();
+  if (v && api()) { try { await api().save_settings({skip_update_version: v}); toast(t('updateSkipped') + ' ' + v, 'ok'); } catch(e){} }
+});
+$('#checkUpdateBtn').addEventListener('click', manualCheckUpdate);
 $('#gameDismiss').addEventListener('click', () => { const ov = $('#gameOverlay'); if (ov) ov.hidden = true; });
 $('#gameOffBtn').addEventListener('click', async () => {
   const ov = $('#gameOverlay'); if (ov) ov.hidden = true;

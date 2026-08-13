@@ -57,6 +57,11 @@ def _make_hwid() -> str:
     return hw or "HW-MIMIBOX-1"
 
 
+# Репозиторий для автообновлений: проверяем последний релиз через GitHub API
+GITHUB_REPO = "mimidevil-vpn/MimiBox"
+GITHUB_API_LATEST = "https://api.github.com/repos/%s/releases/latest" % GITHUB_REPO
+
+
 class Api:
     # Версия приложения — build скрипты подставляют реальную из git describe
     # Для dev-режима (из исходников) — git describe в runtime
@@ -165,6 +170,8 @@ class Api:
                          daemon=True).start()
         # фон: устаревшую подписку освежаем молча, не тормозя открытие окна
         threading.Thread(target=self._auto_refresh_subscription, daemon=True).start()
+        # фон: проверяем, не вышла ли новая версия на GitHub (баннер в UI)
+        threading.Thread(target=self._auto_check_update, daemon=True).start()
         # игровой режим: если остался включён с прошлого запуска — замораживаем
         # свои фоновые подсистемы сразу, как раньше делал сторожевой цикл
         self._apply_game_mode()
@@ -311,6 +318,94 @@ class Api:
             self.refresh_subscription()
         except Exception as e:
             storage.log("[sub] авто-обновление не удалось: %s" % e)
+
+    def _auto_check_update(self):
+        """Фоновая проверка обновлений на GitHub.
+
+        Первый заход — через несколько секунд после открытия окна, дальше раз
+        в несколько часов. Баннер показываем один раз на версию; пропущенную
+        через «Скрыть» версию не трогаем; сетевые ошибки игнорируются.
+        """
+        time.sleep(8.0 + random.random() * 2.0)
+        pushed = ""
+        while True:
+            try:
+                r = self.check_update()
+                if r.get("ok") and r.get("version") and r["version"] != pushed:
+                    pushed = r["version"]
+                    self._push("window.__pushUpdate(%s)"
+                               % json.dumps(r, ensure_ascii=False))
+            except Exception as e:
+                storage.log("[update] проверка обновлений: %s" % e)
+            time.sleep(6 * 3600)
+
+    @staticmethod
+    def _version_tuple(v):
+        """"4.2.6", "v4.2.6" или "4.2.6-1-gXXX" -> (4, 2, 6)."""
+        import re as _re
+        m = _re.search(r"(\d+)(?:\.(\d+))?(?:\.(\d+))?", (v or "").lstrip("v"))
+        if not m:
+            return (0, 0, 0)
+        return tuple(int(m.group(i) or 0) for i in (1, 2, 3))
+
+    @staticmethod
+    def _version_newer(latest, current):
+        return Api._version_tuple(latest) > Api._version_tuple(current)
+
+    def check_update(self, force=False):
+        """Проверяет на GitHub последний релиз и сравнивает с текущей версией.
+
+        Возвращает {ok: True, version, date, notes, download_url, url, current},
+        если вышла более новая версия; иначе {ok: False, current: ...}.
+        force=True игнорирует «Скрыть эту версию» — для ручной проверки.
+        """
+        import urllib.request
+        cur = self._resolve_version()
+        try:
+            req = urllib.request.Request(GITHUB_API_LATEST, headers={
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                              "AppleWebKit/537.36 MimiBox",
+                "Accept": "application/vnd.github+json"})
+            # обходим системный прокси: проверка не должна зависеть от VPN
+            op = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+            with op.open(req, timeout=10) as resp:
+                data = json.loads(resp.read().decode("utf-8", errors="replace"))
+        except Exception as e:
+            storage.log("[update] GitHub недоступен: %s" % e)
+            return {"ok": False, "current": cur, "error": str(e)}
+
+        tag = (data.get("tag_name") or "").strip()
+        if not tag:
+            return {"ok": False, "current": cur}
+        latest = tag.lstrip("v")
+        if not self._version_newer(latest, cur):
+            return {"ok": False, "current": cur}
+        if not force:
+            skipped = (self.settings.get("skip_update_version") or "").strip()
+            if skipped and skipped == latest:
+                return {"ok": False, "current": cur, "skipped": True}
+
+        download_url = ""
+        for a in data.get("assets") or []:
+            name = (a.get("name") or "").lower()
+            if name.endswith((".exe", ".msi")) and "setup" in name:
+                download_url = a.get("browser_download_url") or ""
+                break
+        if not download_url:
+            for a in data.get("assets") or []:
+                if (a.get("name") or "").lower().endswith(".exe"):
+                    download_url = a.get("browser_download_url") or ""
+                    break
+
+        return {
+            "ok": True,
+            "version": latest,
+            "date": (data.get("published_at") or "")[:10],
+            "notes": (data.get("body") or "").strip(),
+            "download_url": download_url,
+            "url": data.get("html_url") or "",
+            "current": cur,
+        }
 
     def _find_live_server(self, timeout=1.5, prefer=None):
         """Индекс самого быстрого доступного сервера из текущего списка, либо None.
@@ -1260,6 +1355,9 @@ class Api:
         cur["news_off"] = bool(patch.get("news_off", cur.get("news_off", False)))
         if "last_news_id" in patch:
             cur["last_news_id"] = str(patch.get("last_news_id", cur.get("last_news_id", "")))
+        # ---- автообновление: какую версию не напоминать ----
+        if "skip_update_version" in patch:
+            cur["skip_update_version"] = str(patch.get("skip_update_version", "") or "").strip()[:32]
         # ---- фоновая сцена и шрифт (раньше жили только в JS) ----
         if "bg_scene" in patch:
             cur["bg_scene"] = str(patch.get("bg_scene", "") or "")[:32]
