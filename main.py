@@ -34,6 +34,8 @@ os.environ.setdefault(
 
 import webview
 
+import win_session
+
 from api import Api, apply_priority
 
 # Трей — опционально: если pystray/Pillow недоступны, приложение работает без него.
@@ -213,7 +215,14 @@ def main():
             pass
 
     def on_closing():
-        # Если включён трей — прячем окно вместо выхода.
+        # Windows завершает сеанс (выключение/перезагрузка/выход): не прячем
+        # окно в трей и не отменяем закрытие — иначе Windows застрянет на
+        # «MimiBox мешает завершению работы». Прокси уже восстановлен потоком
+        # win_session, а was_connected НЕ снимаем: после загрузки системы
+        # приложение само восстановит VPN.
+        if win_session.session_ending():
+            return True
+        # Обычное закрытие окна при включённом трее — прячем вместо выхода.
         if not state["quitting"] and _HAS_TRAY and state["tray"] is not None \
                 and api.settings.get("minimize_to_tray", True):
             try:

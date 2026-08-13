@@ -189,6 +189,42 @@ def disable_proxy():
         return False, str(e)
 
 
+def is_ours(own_ports=()):
+    """True, если системный прокси включён именно на один из наших портов.
+
+    Свой (пользовательский, другой программы) прокси на чужом адресе/порту
+    не трогаем — «наш» значит «указывает на 127.0.0.1/localhost и на один из
+    переданных портов».
+    """
+    try:
+        enable, server, _ = _read_proxy()
+    except Exception:
+        return False
+    if not enable:
+        return False
+    server = (server or "").strip().lower()
+    if "127.0.0.1" not in server and "localhost" not in server:
+        return False
+    if own_ports and not any(":%d" % p in server for p in own_ports):
+        return False
+    return True
+
+
+def restore_if_ours(own_ports=()):
+    """Если системный прокси сейчас наш — восстанавливаем исходные настройки.
+
+    Используется при завершении сеанса Windows (win_session): пока процесс ещё
+    жив, снимаем «свой» прокси и возвращаем настройки, какими они были до VPN.
+    Чужой прокси не трогаем. Возвращает (True, "") если восстановили,
+    (False, "") если делать было нечего.
+    """
+    if not IS_WIN:
+        return False, "Системный прокси доступен только в Windows."
+    if not is_ours(own_ports):
+        return False, ""
+    return disable_proxy()
+
+
 def _port_bound(host, port):
     """True, если адрес host:port уже занят (наши inbound-порты слушаются).
 
@@ -227,18 +263,8 @@ def cleanup_stale_proxy(own_ports=()):
     """
     if not IS_WIN:
         return False, "Системный прокси доступен только в Windows."
-    try:
-        enable, server, _ = _read_proxy()
-    except Exception as e:
-        return False, str(e)
-
-    if not enable:
-        return False, ""
-    server = (server or "").strip().lower()
-    if "127.0.0.1" not in server and "localhost" not in server:
+    if not is_ours(own_ports):
         return False, ""                       # прокси не наш — не лезем
-    if own_ports and not any(":%d" % p in server for p in own_ports):
-        return False, ""                       # не наш порт — не лезем
     # Наш порт реально слушается (живой Xray, вторая копия) — не трогаем.
     for p in own_ports:
         if _port_bound("127.0.0.1", p):

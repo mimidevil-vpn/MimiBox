@@ -19,6 +19,7 @@ import threading
 from parsing import parse_many, parse_subscription, fetch_subscription
 from xray_core import XrayManager, tcp_ping, find_xray, kill_orphans
 import win_proxy
+import win_session
 import storage
 import tun
 import tg_link
@@ -151,6 +152,17 @@ class Api:
         # резервной копии). При авто-восстановлении это же разблокирует интернет
         # на время, пока мы поднимаем ядро и ждём готовности порта.
         self._cleanup_stale_proxy()
+        # Скрытое окно-сторож (win_session): когда Windows завершает сеанс
+        # (выключение/перезагрузка/выход), восстанавливаем системный прокси
+        # ДО того, как процесс будет убит. Иначе после входа в систему
+        # браузеры ходят в мёртвый локальный порт.
+        win_session.start(on_end=self._on_session_end,
+                          on_cancel=self._on_session_cancel)
+        # Зависшее ядро от прошлого запуска может держать порт: первый проход
+        # _cleanup_stale_proxy() увидел живой порт и оставил прокси. Повторяем
+        # проверку уже после того, как _cleanup_orphans прибил ядро.
+        threading.Thread(target=self._cleanup_stale_after_orphans,
+                         daemon=True).start()
         # фон: устаревшую подписку освежаем молча, не тормозя открытие окна
         threading.Thread(target=self._auto_refresh_subscription, daemon=True).start()
         # игровой режим: если остался включён с прошлого запуска — замораживаем
@@ -226,6 +238,58 @@ class Api:
             storage.log("[proxy] снят зависший системный прокси после перезагрузки")
         elif err:
             storage.log("[proxy] очистка прокси: %s" % err)
+
+    def _cleanup_stale_after_orphans(self):
+        """Повторная проверка зависшего прокси после снятия ядер прошлого запуска.
+
+        _cleanup_stale_proxy() в __init__ мог увидеть ещё живой порт старого
+        xray и решить, что прокси рабочий. После kill_orphans() порт мёртв —
+        снимаем прокси. Если к этому моменту соединение уже поднято и порт
+        слушается, cleanup ничего не тронет.
+        """
+        self._orphans_done.wait(timeout=8.0)
+        if self.connected:
+            return
+        self._cleanup_stale_proxy()
+
+    def _on_session_end(self):
+        """Windows завершает сеанс (выключение/перезагрузка/выход из системы).
+
+        Соединение живо, а системный прокси указывает на наш локальный порт.
+        Возвращаем исходные настройки прокси заранее, пока процесс ещё может
+        писать в реестр, — иначе после входа в систему браузеры «не увидят
+        интернет». Флаг was_connected НЕ снимаем: после загрузки системы
+        приложение само восстановит VPN. Вызывается из потока win_session.
+        """
+        try:
+            hp = int(self.settings.get("http_port", 10809))
+            sp = int(self.settings.get("socks_port", 10808))
+            ok, err = win_proxy.restore_if_ours((hp, sp))
+            if ok:
+                storage.log("[proxy] сеанс Windows завершается — "
+                            "системный прокси восстановлен")
+            elif err:
+                storage.log("[proxy] завершение сеанса: %s" % err)
+        except Exception as e:
+            storage.log("[proxy] завершение сеанса: %s" % e)
+
+    def _on_session_cancel(self):
+        """Завершение сеанса отменили (шутдаун не прошёл).
+
+        Мы уже вернули исходный прокси — если соединение живо и локальный порт
+        слушается, включаем прокси обратно, чтобы VPN продолжил работать.
+        """
+        try:
+            if not self.connected:
+                return
+            if not self.settings.get("system_proxy", True):
+                return
+            hp = int(self.settings.get("http_port", 10809))
+            if win_proxy.port_listening("127.0.0.1", hp, timeout=0.4):
+                win_proxy.set_proxy("127.0.0.1:%d" % hp)
+                storage.log("[proxy] шутдаун отменён — системный прокси вернул")
+        except Exception:
+            pass
 
     def _auto_refresh_subscription(self):
         """При старте молча обновляем подписку, если серверов нет или данные
