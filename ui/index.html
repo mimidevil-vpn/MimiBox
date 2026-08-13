@@ -1299,6 +1299,7 @@ const I18N = {
     err_no_live_server:'Все серверы недоступны. Обнови подписку или попробуй позже',
     errConflict:'Сторонний VPN уже запущен:', errConflictHint:'Отключи его, иначе возможны конфликты',
     connectedOk:'Подключено', disconnectedOk:'Отключено',
+    resumeToast:'VPN восстановлен после перезагрузки',
     connTimeout:'Тайм-аут запуска. Ядро не поднялось — смотри лог в Настройках.',
     imported:'Добавлено серверов:', importedEmpty:'Ничего не нашлось в ссылках',
     subImported:'Подписка импортирована:', subFailed:'Не удалось импортировать подписку',
@@ -1402,6 +1403,7 @@ const I18N = {
     err_no_live_server:'All servers are unreachable. Update the subscription or try again later',
     errConflict:'Third-party VPN already running:', errConflictHint:'Turn it off to avoid conflicts',
     connectedOk:'Connected', disconnectedOk:'Disconnected',
+    resumeToast:'VPN reconnected after restart',
     connTimeout:'Connection start timed out. The core did not come up — check the log in Settings.',
     imported:'Servers added:', importedEmpty:'Nothing found in the links',
     subImported:'Subscription imported:', subFailed:'Failed to import subscription',
@@ -3416,6 +3418,7 @@ window.__pushLog = (line) => {
   else { logBuf += line + '\n'; if (logBuf.length > 20000) logBuf = logBuf.slice(-20000); }
 };
 window.__pushHint = (text) => { if (text) toast(text, 'warn'); };
+window.__pushResume = () => { try { toast(t('resumeToast'), 'ok'); refreshFromBackend(); } catch(e){} };
 window.__pushGame = (list) => {
   const ov = $('#gameOverlay');
   if (!ov) return;

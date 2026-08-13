@@ -200,6 +200,8 @@ DEFAULT_SETTINGS = {
     "traffic_down": 0,
     "snow_enabled": True,       # снежинки на подключённом сервере
     "autostart": False,         # автозапуск приложения при входе в Windows
+    "was_connected": False,     # VPN был включён до выключения/перезагрузки ПК —
+                                # после старта приложение восстановит соединение
     "game_mode": False,         # игровой режим: заморозка фоновых приложений
     "bg_scene": "",             # выбранная фоновая сцена (stars/sakura/street)
 }

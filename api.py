@@ -74,6 +74,13 @@ class Api:
         self.connected = False
         self._conflicts = []
         self._conflicts_lock = threading.Lock()
+        # Сериализует connect/disconnect/авто-восстановление: одновременный
+        # запуск ядра из двух потоков (пользователь + _auto_resume) недопустим.
+        self._conn_lock = threading.Lock()
+        self._shutdown_done = False
+        self._resume_in_progress = False   # идёт ли авто-восстановление сейчас
+        self._resume_started = False
+        self._orphans_done = threading.Event()  # _cleanup_orphans завершился
         self._save_error = ""
         self._speed = (0, 0)
         # Кумулятивный трафик (байты): продолжаем с прошлых запусков
@@ -131,9 +138,18 @@ class Api:
         # поиск сторонних VPN не должен тормозить открытие окна
         threading.Thread(target=self._scan_conflicts, daemon=True).start()
         threading.Thread(target=self._cleanup_orphans, daemon=True).start()
-        # после жёсткой перезагрузки/выключения ПК с работающим VPN в реестре
-        # остаётся включённый системный прокси на наш inbound-порт, а Xray уже
-        # мёртв — сайты не открываются. Снимаем такой «зависший» прокси сразу.
+        # VPN был включён до перезагрузки/выключения ПК — восстановим его после
+        # открытия окна (см. _auto_resume). Флаг снимается в connect/disconnect.
+        self._resume_wanted = bool(self.settings.get("was_connected", False)) \
+            and bool(self.servers) and self.selected >= 0
+        if self._resume_wanted:
+            storage.log("[resume] VPN был включён до перезагрузки — "
+                        "восстановлю после открытия окна")
+        # После жёсткой перезагрузки в реестре остаётся включённый системный
+        # прокси на наш inbound-порт, а Xray уже мёртв — сайты не открываются.
+        # Снимаем такой «зависший» прокси сразу (исходные настройки вернутся из
+        # резервной копии). При авто-восстановлении это же разблокирует интернет
+        # на время, пока мы поднимаем ядро и ждём готовности порта.
         self._cleanup_stale_proxy()
         # фон: устаревшую подписку освежаем молча, не тормозя открытие окна
         threading.Thread(target=self._auto_refresh_subscription, daemon=True).start()
@@ -188,6 +204,7 @@ class Api:
         killed = kill_orphans(find_xray(self.settings.get("xray_path", "")))
         if killed:
             storage.log("[env] снято зависших ядер от прошлого запуска: %d" % killed)
+        self._orphans_done.set()
 
     def _cleanup_stale_proxy(self):
         """Снимает системный прокси, оставшийся от прошлого запуска.
@@ -277,6 +294,10 @@ class Api:
         self._window = window
         self._on_quit_cb = on_quit
         self._on_speed_cb = on_speed
+        # VPN был включён до перезагрузки — восстанавливаем его в фоне.
+        if self._resume_wanted and not self._resume_started:
+            self._resume_started = True
+            threading.Thread(target=self._auto_resume, daemon=True).start()
 
     def _log_environment(self):
         """Пишем в app.log, где именно приложение нашло ядро и туннель.
@@ -493,72 +514,192 @@ class Api:
         if want_tun and not tun.is_admin():
             return {"error": "need_admin"}
 
-        self.selected = index
-        srv = self.servers[index]
+        with self._conn_lock:
+            # Ручное подключение отменяет фоновое авто-восстановление.
+            if not self._resume_in_progress:
+                self._resume_wanted = False
 
-        # Авто-фейловер: выбранный сервер недоступен — ищем живой. Живой отвечает
-        # за миллисекунды, задержка появляется только на мёртвом (таймаут ping).
-        if tcp_ping(srv.address, srv.port) < 0:
-            self._log("[core] сервер %s:%s недоступен, ищу живой..."
-                      % (srv.address, srv.port))
-            live = self._find_live_server(prefer=(srv.protocol, srv.network))
-            if live is None:
-                self._log("[core] все серверы недоступны — обновите подписку")
-                return {"error": "no_live_server"}
-            self.selected = live
-            srv = self.servers[live]
-            self._log("[core] переключаюсь на %s:%s" % (srv.address, srv.port))
-        sp = int(self.settings.get("socks_port", 10808))
-        hp = int(self.settings.get("http_port", 10809))
-        mode, direct_entries = self._xray_route()
-        try:
-            exe = self._xray.start(
-                srv, sp, hp, self.settings.get("xray_path", ""),
-                on_log=self._log,
-                mode=mode,
-                direct_entries=direct_entries,
-                block_entries=self.settings.get("block_sites", []),
-                high_priority=bool(self.settings.get("high_priority", False)),
-            )
-            self._log("[core] запущено ядро: %s" % exe)
-            self._log("[core] сервер: %s (%s, %s)" % (srv.name, srv.protocol, srv.network))
-        except Exception as e:
-            self._log("[error] %s" % e)
-            return {"error": str(e)}
+            self.selected = index
+            srv = self.servers[index]
 
-        if self.settings.get("system_proxy", True):
-            ok, err = win_proxy.set_proxy("127.0.0.1:%d" % hp)
-            self._log("[proxy] системный прокси -> 127.0.0.1:%d" % hp if ok
-                      else "[proxy] ошибка: %s" % err)
-
-        if want_tun:
+            # Авто-фейловер: выбранный сервер недоступен — ищем живой. Живой отвечает
+            # за миллисекунды, задержка появляется только на мёртвом (таймаут ping).
+            if tcp_ping(srv.address, srv.port) < 0:
+                self._log("[core] сервер %s:%s недоступен, ищу живой..."
+                          % (srv.address, srv.port))
+                live = self._find_live_server(prefer=(srv.protocol, srv.network))
+                if live is None:
+                    self._log("[core] все серверы недоступны — обновите подписку")
+                    return {"error": "no_live_server"}
+                self.selected = live
+                srv = self.servers[live]
+                self._log("[core] переключаюсь на %s:%s" % (srv.address, srv.port))
+            sp = int(self.settings.get("socks_port", 10808))
+            hp = int(self.settings.get("http_port", 10809))
+            mode, direct_entries = self._xray_route()
             try:
-                self._tun.start(sp, srv.address,
-                                dns=self.settings.get("tun_dns", "1.1.1.1"),
-                                on_log=self._log)
+                exe = self._xray.start(
+                    srv, sp, hp, self.settings.get("xray_path", ""),
+                    on_log=self._log,
+                    mode=mode,
+                    direct_entries=direct_entries,
+                    block_entries=self.settings.get("block_sites", []),
+                    high_priority=bool(self.settings.get("high_priority", False)),
+                )
+                self._log("[core] запущено ядро: %s" % exe)
+                self._log("[core] сервер: %s (%s, %s)"
+                          % (srv.name, srv.protocol, srv.network))
             except Exception as e:
-                self._log("[tun] ошибка: %s" % e)
+                self._log("[error] %s" % e)
+                return {"error": str(e)}
+
+            # Системный прокси включаем ТОЛЬКО после того, как локальный
+            # proxy-порт реально начал принимать соединения. Иначе трафик
+            # пойдёт в мёртвый порт и интернет заблокируется.
+            if not self._wait_local_port(hp):
+                self._log("[error] локальный proxy-порт %d не поднялся — "
+                          "подключение отменено, системный прокси не включаю" % hp)
                 self._xray.stop()
                 if self.settings.get("system_proxy", True):
                     win_proxy.disable_proxy()
-                return {"error": str(e)}
+                return {"error": "core_not_ready"}
 
-        self.connected = True
-        self._start_stats()
-        return {"ok": True, "state": self._state()}
+            if self.settings.get("system_proxy", True):
+                ok, err = win_proxy.set_proxy("127.0.0.1:%d" % hp)
+                self._log("[proxy] системный прокси -> 127.0.0.1:%d" % hp if ok
+                          else "[proxy] ошибка: %s" % err)
+
+            if want_tun:
+                if not self._wait_local_port(sp):
+                    self._log("[error] socks-порт %d не поднялся — "
+                              "туннель не запущен" % sp)
+                    self._xray.stop()
+                    if self.settings.get("system_proxy", True):
+                        win_proxy.disable_proxy()
+                    return {"error": "core_not_ready"}
+                try:
+                    self._tun.start(sp, srv.address,
+                                    dns=self.settings.get("tun_dns", "1.1.1.1"),
+                                    on_log=self._log)
+                except Exception as e:
+                    self._log("[tun] ошибка: %s" % e)
+                    self._xray.stop()
+                    if self.settings.get("system_proxy", True):
+                        win_proxy.disable_proxy()
+                    return {"error": str(e)}
+
+            self.connected = True
+            # Соединение активно — запоминаем, чтобы восстановить после
+            # перезагрузки ПК. Снимается в disconnect()/shutdown().
+            self.settings["was_connected"] = True
+            self._save()
+            self._start_stats()
+            return {"ok": True, "state": self._state()}
 
     def disconnect(self):
-        self._stop_stats_loop()
-        self._persist_traffic()
-        self._tun.stop()
-        self._xray.stop()
-        if self.settings.get("system_proxy", True):
-            win_proxy.disable_proxy()
-        self.connected = False
-        self._speed = (0, 0)
+        with self._conn_lock:
+            self._resume_wanted = False
+            self._stop_stats_loop()
+            self._persist_traffic()
+            self._tun.stop()
+            self._xray.stop()
+            if self.settings.get("system_proxy", True):
+                win_proxy.disable_proxy()
+            self.connected = False
+            self._speed = (0, 0)
+            if self.settings.get("was_connected"):
+                self.settings["was_connected"] = False
+                self._save()
         self._push_speed(0, 0)
         self._log("[core] отключено")
         return {"ok": True, "state": self._state()}
+
+    # ------------------------------------------------- авто-восстановление
+    def _wait_local_port(self, port, timeout=10.0):
+        """True, когда на 127.0.0.1:port реально принимаются соединения.
+
+        Проверяем коннектом, а не bind() — это точное «порт готов принимать
+        трафик». Опрашиваем с короткой паузой, чтобы не поймать момент, когда
+        слушатель уже создан, но ещё не в accept-цикле.
+        """
+        deadline = time.time() + timeout
+        while time.time() < deadline:
+            if win_proxy.port_listening("127.0.0.1", port, timeout=0.4):
+                return True
+            time.sleep(0.15)
+        return False
+
+    def _auto_resume(self):
+        """Восстанавливает VPN после перезагрузки/выключения ПК.
+
+        Порядок: поднимаем ядро, ЖДЁМ готовности локального proxy-порта и только
+        потом включаем системный прокси. Если ядро не поднялось, сервер
+        недоступен или порт так и не зазвучал — системный прокси остаётся
+        выключенным (исходные настройки уже восстановлены на старте), интернет
+        работает как обычно. Повторяем попытки, потому что сразу после входа в
+        систему сеть может быть ещё не поднята.
+        """
+        try:
+            time.sleep(1.5)              # даём окну и системе прийти в себя
+            if not self._resume_wanted:
+                return
+            # Ждём, пока _cleanup_orphans убьёт ядро от прошлого запуска: иначе
+            # он может прибить только что поднятый нами xray (тот же путь).
+            self._orphans_done.wait(timeout=5.0)
+            if not self._resume_wanted:
+                return
+            if not (0 <= self.selected < len(self.servers)):
+                self._finish_resume_failed()
+                return
+            if bool(self.settings.get("tun_mode", False)) and not tun.is_admin():
+                self._log("[resume] туннель требует прав администратора — "
+                          "авто-восстановление пропущено")
+                self._finish_resume_failed()
+                return
+            self._resume_in_progress = True
+            try:
+                deadline = time.time() + 90.0
+                while time.time() < deadline:
+                    if not self._resume_wanted:
+                        return            # пользователь подключился/отключился сам
+                    self._log("[resume] восстанавливаю соединение (попытка)...")
+                    try:
+                        r = self.connect(self.selected)
+                    except Exception as e:
+                        r = {"error": str(e)}
+                    if r.get("error") is None:
+                        self._log("[resume] соединение восстановлено")
+                        self._push("window.__pushResume()")
+                        return
+                    self._log("[resume] не вышло: %s — повтор через 5 с"
+                              % r.get("error"))
+                    time.sleep(5)
+                self._log("[resume] сервер недоступен — авто-восстановление отменено")
+            finally:
+                self._resume_in_progress = False
+            self._finish_resume_failed()
+        except Exception as e:
+            storage.log("[resume] сбой авто-восстановления: %s" % e)
+            self._finish_resume_failed()
+
+    def _finish_resume_failed(self):
+        """Сдаёмся в авто-восстановлении: без VPN и без нашего системного прокси."""
+        self._resume_wanted = False
+        try:
+            if self.settings.get("was_connected"):
+                self.settings["was_connected"] = False
+                self._save()
+        except Exception:
+            pass
+        try:
+            self._xray.stop()
+        except Exception:
+            pass
+        try:
+            if self.settings.get("system_proxy", True):
+                win_proxy.disable_proxy()
+        except Exception:
+            pass
 
     def _xray_route(self):
         """(mode, direct_entries) для ядра.
@@ -601,8 +742,16 @@ class Api:
             hp = int(self.settings.get("http_port", 10809))
             sp = int(self.settings.get("socks_port", 10808))
             if want_proxy and not was_proxy:
-                win_proxy.set_proxy("127.0.0.1:%d" % hp)
-                self._log("[proxy] системный прокси включён")
+                # Прокси включаем только если локальный порт реально слушается,
+                # иначе весь трафик уйдёт в пустоту и интернет заблокируется.
+                if win_proxy.port_listening("127.0.0.1", hp, timeout=0.4):
+                    win_proxy.set_proxy("127.0.0.1:%d" % hp)
+                    self._log("[proxy] системный прокси включён")
+                else:
+                    self.settings["system_proxy"] = False
+                    self._save()
+                    self._log("[proxy] proxy-порт %d не готов — "
+                              "системный прокси не включён" % hp)
             elif not want_proxy and was_proxy:
                 win_proxy.disable_proxy()
                 self._log("[proxy] системный прокси выключен")
@@ -640,8 +789,10 @@ class Api:
         return {"ok": True}
 
     def _quit(self):
+        # Перезапуск с правами администратора: соединение (если было) сохраняем
+        # для авто-восстановления в новом процессе, чтобы VPN не «пропадал».
         try:
-            self.shutdown()
+            self.shutdown(keep_resume=True)
         except Exception:
             pass
         if self._on_quit_cb:
@@ -707,6 +858,17 @@ class Api:
                 block_entries=self.settings.get("block_sites", []),
                 high_priority=bool(self.settings.get("high_priority", False)),
             )
+            # Ядро перезапущено — дожидаемся готовности порта. Если он не
+            # поднялся, системный прокси указывает в пустоту и интернет
+            # блокируется: откатываемся и выключаем прокси.
+            hp = int(self.settings.get("http_port", 10809))
+            if not self._wait_local_port(hp):
+                self._xray.stop()
+                if self.settings.get("system_proxy", True):
+                    win_proxy.disable_proxy()
+                self._log("[error] после перезапуска ядра порт %d не поднялся — "
+                          "системный прокси выключен" % hp)
+                return False
             self._log("[core] правила маршрутизации применены")
             return True
         except Exception as e:
@@ -1509,10 +1671,22 @@ class Api:
         return {"ok": True, "html": html, "post_id": "%s/%d" % (channel, top),
                 "date": date_str, "disabled": self.settings.get("news_off", False)}
 
-    def shutdown(self):
+    def shutdown(self, keep_resume=False):
+        # Повторные вызовы (main.py зовёт и при закрытии окна, и при выходе из
+        # трея; _quit тоже) не должны повторно снимать флаг was_connected.
+        if self._shutdown_done:
+            return
+        self._shutdown_done = True
         try:
             self._stop_stats_loop()
             self._persist_traffic()
+            # Обычный выход = пользователь выключил VPN. При перезапуске с
+            # правами администратора (keep_resume) соединение сохраняем.
+            if not keep_resume:
+                self._resume_wanted = False
+                if self.settings.get("was_connected"):
+                    self.settings["was_connected"] = False
+                    self._save()
             self._tun.stop()
             self._xray.stop()
             if self.settings.get("system_proxy", True):
